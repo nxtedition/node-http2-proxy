@@ -156,10 +156,17 @@ function proxy (req, resOrSocket, options, onRes, onError) {
         callback(new createError.ServiceUnavailable(err.message))
       } else if (/HPE_INVALID/.test(err.code)) {
         callback(new createError.BadGateway(err.message))
-      } else if (!proxyReq.aborted || err.code !== 'ECONNRESET') {
+      } else if (err.code === 'ECONNRESET') {
+        if (!proxyReq.aborted) {
+          callback(new createError.BadGateway('socket hang up'))
+        }
+      } else {
         callback(err)
       }
     })
+    // NOTE http.ClientRequest doesn't emit 'aborted'. Instead it emits
+    // a "socket hang up" error.
+    // .on('aborted', () => callback(new createError.BadGateway('socket hang up')))
     .on('timeout', () => callback(new createError.GatewayTimeout()))
     .on('response', proxyRes => {
       try {
