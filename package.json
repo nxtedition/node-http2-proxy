@@ -7,7 +7,7 @@
     "commitmsg": "validate-commit-msg"
   },
   "main": "index.js",
-  "author": "Robert Nagy <robert.nagy@boffins.se>",
+  "author": "Robert Nagy <ronagy@icloud.com>",
   "license": "MIT",
   "repository": "nxtedition/node-http2-proxy",
   "keywords": [
