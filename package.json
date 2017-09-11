@@ -15,6 +15,12 @@
   "main": "./dist/index.js",
   "author": "Robert Nagy <robert.nagy@boffins.se>",
   "license": "MIT",
+  "repository": "nxtedition/node-http2-proxy",
+  "keywords": [
+    "http2",
+    "http",
+    "proxy"
+  ],
   "dependencies": {
     "http-errors": "^1.6.2",
     "pump": "^1.0.2"
