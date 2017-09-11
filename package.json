@@ -1,6 +1,6 @@
 {
   "name": "http2-proxy",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "scripts": {
     "build": "babel src --out-dir dist --source-maps",
     "start": "node -r babel-register src",
