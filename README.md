@@ -90,14 +90,14 @@ server.on('request', (req, res) => {
 
 ### API
 
-#### web (req, res, options, [onProxyError])
+#### web (req, res, options, onProxyError)
 
 - `req`: `http.IncomingMessage` or `http2.Http2ServerRequest`
 - `res`: `http.ServerResponse` or `http2.Http2ServerResponse`
 - `options`: see [Options](#options)
 - `onProxyError(err)`: called on error
 
-#### ws (req, socket, head, options, [onProxyError])
+#### ws (req, socket, head, options, onProxyError)
 
 - `req`: `http.IncomingMessage`
 - `socket`: `net.Socket`
