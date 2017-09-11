@@ -1,16 +1,2 @@
 .DS_Store
-*.log
 node_modules
-build
-bundle-stats.json
-*.sublime-workspace
-.idea
-bower_components
-build
-coverage
-dist
-npm-debug.log
-public/bundle.js
-media
-nxt*
-db
