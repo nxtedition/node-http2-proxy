@@ -1,0 +1,8 @@
+{
+  "plugins": [
+    ["transform-object-rest-spread", { "useBuiltIns": false }],
+    "transform-es2015-modules-commonjs",
+    "transform-function-bind",
+    "transform-class-properties"
+  ]
+}

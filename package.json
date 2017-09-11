@@ -1,0 +1,33 @@
+{
+  "name": "http2-proxy",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "babel src --out-dir dist --source-maps",
+    "start": "node -r babel-register src",
+    "dev": "nodemon -r babel-register --inspect=9308 --expose-http2 src",
+    "precommit": "standard",
+    "commitmsg": "validate-commit-msg"
+  },
+  "standard": {
+    "parser": "babel-eslint"
+  },
+  "main": "./dist/index.js",
+  "author": "Robert Nagy <robert.nagy@boffins.se>",
+  "license": "MIT",
+  "dependencies": {
+    "http-errors": "^1.6.2",
+    "pump": "^1.0.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-eslint": "^7.2.3",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.0",
+    "babel-plugin-transform-function-bind": "^6.22.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "husky": "^0.14.3",
+    "nodemon": "^1.12.0",
+    "standard": "^10.0.3",
+    "validate-commit-msg": "^2.14.0"
+  }
+}
