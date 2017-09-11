@@ -90,8 +90,6 @@ function impl (req, resOrSocket, headOrNil, {
       req.setTimeout(timeout, () => onError(new createError.RequestTimeout()))
     }
 
-    (req.stream || req).on('error', onError)
-
     if (resOrSocket instanceof net.Socket) {
       if (headOrNil && headOrNil.length) {
         resOrSocket.unshift(headOrNil)
@@ -130,23 +128,24 @@ function impl (req, resOrSocket, headOrNil, {
 function proxy (req, resOrSocket, options, onRes, onError) {
   const proxyReq = http.request(options)
 
-  const incoming = req.stream || req
-
   const abort = () => {
     if (!proxyReq.aborted) {
       proxyReq.abort()
     }
   }
 
-  incoming.on('error', abort)
-  incoming.on('aborted', abort)
+  // NOTE http2.Http2ServerRequest doesn't forward stream errors.
+  const incoming = req.stream || req
 
   const callback = err => {
-    incoming.removeListener('error', abort)
+    incoming.removeListener('error', callback)
     incoming.removeListener('aborted', abort)
     abort()
     onError(err)
   }
+
+  incoming.on('error', callback)
+  incoming.on('aborted', abort)
 
   req
     .pipe(proxyReq)
