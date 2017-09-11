@@ -61,15 +61,15 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000,
-    onRes: (req, headers) => helmet({
+    onRes: (req, resHeaders) => helmet({
       setHeader (key, val) {
-        headers[key.trim().toLowerCase()] = val
+        resHeaders[key.trim().toLowerCase()] = val
       },
       getHeader (key) {
-        return headers[key.trim().toLowerCase()]
+        return resHeaders[key.trim().toLowerCase()]
       },
       removeHeader (key) {
-        delete headers[key.trim().toLowerCase()]
+        delete resHeaders[key.trim().toLowerCase()]
       }
     }, () => {})
   }, err => console.error(err, 'proxy error'))
