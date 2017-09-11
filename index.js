@@ -140,12 +140,14 @@ function proxy (req, resOrSocket, options, onRes, onError) {
   const callback = err => {
     incoming.removeListener('error', callback)
     incoming.removeListener('aborted', abort)
+    incoming.removeListener('timeout', abort)
     abort()
     onError(err)
   }
 
   incoming.on('error', callback)
   incoming.on('aborted', abort)
+  incoming.on('timeout', abort)
 
   req
     .pipe(proxyReq)
