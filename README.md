@@ -1,6 +1,6 @@
 # node-http2-proxy
 
-A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper.
+A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 
 ### Features
 
