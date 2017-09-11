@@ -50,13 +50,9 @@ server.on('upgrade', (req, socket, head) => {
 })
 ```
 
-#### Use helmet to secure HTTP headers
-
-`npm i helmet`
+#### Use [Helmet](https://www.npmjs.com/package/helmet) to secure response headers
 
 ```javascript
-import helmet from 'helmet'
-
 server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
