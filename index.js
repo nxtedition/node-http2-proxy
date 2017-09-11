@@ -156,7 +156,7 @@ function proxy (req, resOrSocket, options, onRes, onError) {
         callback(new createError.ServiceUnavailable(err.message))
       } else if (/HPE_INVALID/.test(err.code)) {
         callback(new createError.BadGateway(err.message))
-      } else {
+      } else if (!proxyReq.aborted || err.code !== 'ECONNRESET') {
         callback(err)
       }
     })
