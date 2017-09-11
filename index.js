@@ -134,7 +134,7 @@ function proxy (req, resOrSocket, options, onRes, onError) {
     if (!proxyReq.aborted) {
       proxyReq.abort()
     }
-    (req.stream || req).removeListener(abort)
+    (req.stream || req).removeListener('error', abort)
   }
 
   (req.stream || req).on('error', abort)
