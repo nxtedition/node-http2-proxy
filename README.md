@@ -1,5 +1,4 @@
-node-http2-proxy
-=======
+# node-http2-proxy
 
 A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper.
 
@@ -14,7 +13,9 @@ A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper.
 
 ### Installation
 
-`npm install http2-proxy`
+```sh
+$ npm install http2-proxy
+```
 
 ### Notes
 
