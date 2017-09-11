@@ -171,9 +171,9 @@ function proxy (req, resOrSocket, options, onRes, onError) {
     .on('response', proxyRes => {
       try {
         proxyRes.on('aborted', () => {
-          const error = new Error('socket hang up')
-          error.code = 'ECONNRESET'
-          callback(error)
+          const err = new Error('socket hang up')
+          err.code = 'ECONNRESET'
+          callback(err)
         })
 
         if (resOrSocket instanceof net.Socket) {
