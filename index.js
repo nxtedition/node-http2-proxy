@@ -170,7 +170,11 @@ function proxy (req, resOrSocket, options, onRes, onError) {
     .on('timeout', () => callback(new createError.GatewayTimeout()))
     .on('response', proxyRes => {
       try {
-        proxyRes.on('aborted', () => callback(new createError.BadGateway('socket hang up')))
+        proxyRes.on('aborted', () => {
+          const error = new Error('socket hang up')
+          error.code = 'ECONNRESET'
+          callback(error)
+        })
 
         if (resOrSocket instanceof net.Socket) {
           if (!proxyRes.upgrade) {
