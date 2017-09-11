@@ -1,8 +1,8 @@
-import createError from 'http-errors'
-import http2 from 'http2'
-import http from 'http'
-import pump from 'pump'
-import net from 'net'
+const createError = require('http-errors')
+const http2 = require('http2')
+const http = require('http')
+const pump = require('pump')
+const net = require('net')
 
 const {
   HTTP2_HEADER_CONNECTION,
@@ -29,7 +29,7 @@ if (NODE_VER[0] < 9 && (NODE_VER[0] !== 8 || NODE_VER[1] > 4)) {
   throw new Error(`unsupported node version (${process.version} < 8.5.0)`)
 }
 
-export default {
+module.exports = {
   ws (req, socket, head, options, onProxyError) {
     impl(req, socket, head, options, onProxyError)
   },
