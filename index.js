@@ -130,16 +130,20 @@ function impl (req, resOrSocket, headOrNil, {
 function proxy (req, resOrSocket, options, onRes, onError) {
   const proxyReq = http.request(options)
 
+  const incoming = req.stream || req
+
   const abort = () => {
     if (!proxyReq.aborted) {
       proxyReq.abort()
     }
-    (req.stream || req).removeListener('error', abort)
   }
 
-  (req.stream || req).on('error', abort)
+  incoming.on('error', abort)
+  incoming.on('aborted', abort)
 
   const callback = err => {
+    incoming.removeListener('error', abort)
+    incoming.removeListener('aborted', abort)
     abort()
     onError(err)
   }
