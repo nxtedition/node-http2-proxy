@@ -177,10 +177,8 @@ function proxy (req, resOrSocket, options, onRes, onError) {
         callback(err)
       }
     })
-    // XXX http.ClientRequest doesn't emit 'aborted'. Instead it emits
-    // a "socket hang up" error.
-    // .on('aborted', () => callback(new createError.BadGateway('socket hang up')))
-    // (https://github.com/nodejs/node/pull/15270)
+    // NOTE http.ClientRequest emits "socket hang up" error when aborted, i.e.
+    // there is no need to listen for proxyReq.on('aborted', ...).
     .on('timeout', () => callback(createError('gateway timeout', null, 504)))
     .on('response', proxyRes => {
       try {
