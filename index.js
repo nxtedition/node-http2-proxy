@@ -339,10 +339,6 @@ class ProxyErrorHandler {
     handler.req.on('close', handler._release)
     return handler._handle
   }
-
-  static release (obj) {
-    ProxyErrorHandler.pool.push(obj)
-  }
 }
 ProxyErrorHandler.pool = []
 
