@@ -525,6 +525,7 @@ class OnFinished {
       req.on('close', onFinished.handle)
       req.on('error', onFinished.handle)
     }
+    return onFinished
   }
 }
 OnFinished.pool = []
