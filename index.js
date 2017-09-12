@@ -45,11 +45,6 @@ function impl (req, resOrSocket, headOrNil, {
   onReq,
   onRes
 }, onProxyError) {
-  // XXX http2.Http2ServerRequest doesn't forward stream errors.
-  // (https://github.com/nodejs/node/issues/15359)
-  (req.stream || req).on('error', onError)
-  resOrSocket.on('error', onError)
-
   function onError (err, statusCode = (err && err.statusCode) || 500) {
     if (resOrSocket.closed === true ||
         resOrSocket.headersSent !== false ||
@@ -67,6 +62,11 @@ function impl (req, resOrSocket, headOrNil, {
       throw err
     }
   }
+
+  // XXX http2.Http2ServerRequest doesn't forward stream errors.
+  // (https://github.com/nodejs/node/issues/15359)
+  (req.stream || req).on('error', onError)
+  resOrSocket.on('error', onError)
 
   try {
     if (resOrSocket instanceof net.Socket) {
