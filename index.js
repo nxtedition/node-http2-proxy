@@ -278,6 +278,7 @@ class ProxyErrorHandler {
     this.req = null
     this.proxyReq = null
     this.errorHandler = null
+    this.hpeExpr = /HPE_INVALID/
 
     this._release = this._release.bind(this)
     this._handle = this._handle.bind(this)
@@ -294,7 +295,7 @@ class ProxyErrorHandler {
 
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
       err.statusCode = 503
-    } else if (/HPE_INVALID/.test(err.code)) {
+    } else if (this.hpeExpr.test(err.code)) {
       err.statusCode = 502
     } else if (err.code === 'ECONNRESET') {
       if (!this.proxyReq.aborted) {
