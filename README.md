@@ -20,7 +20,7 @@ $ npm install http2-proxy
 
 ### Notes
 
-`http2-proxy` requires node **v8.5.0** or newer with `http2` enabled. See [nightly node builds](https://nodejs.org/download/nightly/) or [building node from source](https://github.com/nodejs/node/blob/master/BUILDING.md#building-nodejs-on-supported-platforms). Pass the `--expose-http2` option when starting node **v8.x.x**.
+`http2-proxy` requires node **v8.5.0** or newer with `http2` enabled. Pass the `--expose-http2` option when starting node **v8.x.x**.
 
 ### Usage
 
