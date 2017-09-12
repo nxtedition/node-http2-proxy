@@ -21,12 +21,7 @@ const {
   HTTP2_HEADER_FORWARDED = 'forwarded'
 } = http2.constants
 
-const NODE_VER = process.version.match(/v(\d+).(\d+).(\d+)(?:-(.*))/).slice(1)
 const REQ_OPTIONS = {}
-
-if (NODE_VER[0] < 9 && (NODE_VER[0] !== 8 || NODE_VER[1] > 4)) {
-  throw new Error(`unsupported node version (${process.version} < 8.5.0)`)
-}
 
 module.exports = {
   ws (req, socket, head, options, callback) {
