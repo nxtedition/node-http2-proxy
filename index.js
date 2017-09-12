@@ -387,8 +387,8 @@ class ProxyResponseHandler {
       }
 
       this.resOrSocket.writeHead(this.resOrSocket.statusCode)
-      proxyRes.on('end', this._addTrailers)
       proxyRes
+        .on('end', this._addTrailers)
         .on('error', this.proxyErrorHandler)
         .pipe(this.resOrSocket)
     }
