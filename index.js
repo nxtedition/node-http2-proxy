@@ -46,13 +46,9 @@ function impl (req, resOrSocket, headOrNil, {
   onReq,
   onRes
 }, callback) {
-  const onFinished = OnFinished.create(req, resOrSocket)
-  const errorHandler = ErrorHandler.create(req, resOrSocket, callback, onFinished)
+  const finishedHandler = OnFinishedHandler.create(req, resOrSocket)
 
-  resOrSocket.on('error', errorHandler)
-
-  const incoming = req.stream || req
-  incoming.on('error', errorHandler)
+  const errorHandler = ErrorHandler.create(req, resOrSocket, callback, finishedHandler)
 
   if (resOrSocket instanceof net.Socket) {
     if (req.method !== 'GET') {
@@ -112,7 +108,7 @@ function impl (req, resOrSocket, headOrNil, {
 
   const proxyReq = http.request(REQ_OPTIONS)
 
-  const proxyErrorHandler = ProxyErrorHandler.create(req, proxyReq, errorHandler, onFinished)
+  const proxyErrorHandler = ProxyErrorHandler.create(req, proxyReq, errorHandler, finishedHandler)
 
   req
     .pipe(proxyReq)
@@ -121,10 +117,10 @@ function impl (req, resOrSocket, headOrNil, {
     // before having received a response, i.e. there is no need to listen for
     // proxyReq.on('aborted', ...).
     .on('timeout', proxyErrorHandler.gatewayTimeout)
-    .on('response', ProxyResponseHandler.create(req, resOrSocket, onRes, proxyErrorHandler, onFinished))
+    .on('response', ProxyResponseHandler.create(req, resOrSocket, onRes, proxyErrorHandler, finishedHandler))
 
   if (resOrSocket instanceof net.Socket) {
-    proxyReq.on('upgrade', ProxyUpgradeHandler.create(req, resOrSocket, proxyErrorHandler, onFinished))
+    proxyReq.on('upgrade', ProxyUpgradeHandler.create(req, resOrSocket, proxyErrorHandler, finishedHandler))
   }
 }
 
@@ -246,7 +242,11 @@ class ErrorHandler {
     }
   }
 
-  release () {
+  release (err) {
+    if (err) {
+      this.handle(err)
+    }
+
     this.hasError = false
     this.req = null
     this.resOrSocket = null
@@ -326,11 +326,11 @@ class ProxyErrorHandler {
     ProxyErrorHandler.pool.push(this)
   }
 
-  static create (req, proxyReq, errorHandler, onFinished) {
+  static create (req, proxyReq, errorHandler, finishedHandler) {
     const handler = ProxyErrorHandler.pool.pop() || new ProxyErrorHandler()
     handler.proxyReq = proxyReq
     handler.errorHandler = errorHandler
-    onFinished.register(handler)
+    finishedHandler.register(handler)
     return handler.handle
   }
 }
@@ -402,13 +402,13 @@ class ProxyResponseHandler {
     ProxyResponseHandler.pool.push(this)
   }
 
-  static create (req, resOrSocket, onRes, proxyErrorHandler, onFinished) {
+  static create (req, resOrSocket, onRes, proxyErrorHandler, finishedHandler) {
     const handler = ProxyResponseHandler.pool.pop() || new ProxyResponseHandler()
     handler.req = req
     handler.resOrSocket = resOrSocket
     handler.onRes = onRes
     handler.proxyErrorHandler = proxyErrorHandler
-    onFinished.register(handler)
+    finishedHandler.register(handler)
     return handler.handle
   }
 }
@@ -475,37 +475,39 @@ class ProxyUpgradeHandler {
     ProxyUpgradeHandler.pool.push(this)
   }
 
-  static create (req, socket, proxyErrorHandler, onFinished) {
+  static create (req, socket, proxyErrorHandler, finishedHandler) {
     const handler = ProxyUpgradeHandler.pool.pop() || new ProxyUpgradeHandler()
     handler.socket = socket
     handler.proxyErrorHandler = proxyErrorHandler
-    onFinished.register(handler)
+    finishedHandler.register(handler)
     return handler.handle
   }
 }
 ProxyUpgradeHandler.pool = []
 
-class OnFinished {
+class OnFinishedHandler {
   constructor () {
     this.req = null
+    this.res = null
     this.handlers = []
     this.handle = this.handle.bind(this)
     this.init = this.init.bind(this)
   }
 
-  handle () {
+  handle (err) {
     this.req.removeListener('close', this.handle)
     this.req.removeListener('error', this.handle)
+    this.res.removeListener('error', this.handle)
 
     this.req = null
     this.res = null
 
     for (const handler of this.handlers) {
-      handler.release()
+      handler.release(err)
     }
     this.handlers.length = 0
 
-    OnFinished.pool.push(this)
+    OnFinishedHandler.pool.push(this)
   }
 
   register (handler) {
@@ -515,13 +517,15 @@ class OnFinished {
   init () {
     this.req.on('close', this.handle)
     this.req.on('error', this.handle)
+    this.res.on('error', this.handle)
   }
 
   static create (req, res) {
-    const onFinished = OnFinished.pool.pop() || new OnFinished()
-    onFinished.req = req
-    process.nextTick(onFinished.init)
-    return onFinished
+    const handler = OnFinishedHandler.pool.pop() || new OnFinishedHandler()
+    handler.req = req
+    handler.res = res
+    process.nextTick(handler.init)
+    return handler
   }
 }
-OnFinished.pool = []
+OnFinishedHandler.pool = []
