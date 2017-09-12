@@ -212,6 +212,7 @@ function createError (msg, code, statusCode) {
 
 class ErrorHandler {
   constructor () {
+    this.released = true
     this.hasError = false
     this.req = null
     this.resOrSocket = null
@@ -251,6 +252,11 @@ class ErrorHandler {
   }
 
   _release () {
+    if (this.released) {
+      return
+    }
+
+    this.released = true
     this.hasError = false
     this.req = null
     this.resOrSocket = null
@@ -261,11 +267,13 @@ class ErrorHandler {
 
   static create (req, resOrSocket, callback) {
     const handler = ErrorHandler.pool.pop() || new ErrorHandler()
+    handler.released = false
     handler.hasError = false
     handler.req = req
     handler.resOrSocket = resOrSocket
     handler.callback = callback
     handler.req.on('close', handler._release)
+    handler.req.on('error', handler._release)
     return handler._handle
   }
 }
@@ -273,6 +281,7 @@ ErrorHandler.pool = []
 
 class ProxyErrorHandler {
   constructor () {
+    this.released = true
     this.hasError = false
     this.req = null
     this.proxyReq = null
@@ -323,8 +332,13 @@ class ProxyErrorHandler {
   }
 
   _release () {
+    if (this.released) {
+      return
+    }
+
     this._abort()
 
+    this.released = true
     this.hasError = false
     this.req = null
     this.proxyReq = null
@@ -335,10 +349,12 @@ class ProxyErrorHandler {
 
   static create (req, proxyReq, errorHandler) {
     const handler = ProxyErrorHandler.pool.pop() || new ProxyErrorHandler()
+    handler.released = false
     handler.req = req
     handler.proxyReq = proxyReq
     handler.errorHandler = errorHandler
     handler.req.on('close', handler._release)
+    handler.req.on('error', handler._release)
     return handler._handle
   }
 }
@@ -346,6 +362,7 @@ ProxyErrorHandler.pool = []
 
 class ProxyResponseHandler {
   constructor () {
+    this.released = true
     this.req = null
     this.resOrSocket = null
     this.onRes = null
@@ -395,10 +412,15 @@ class ProxyResponseHandler {
   }
 
   _release () {
+    if (this.released) {
+      return
+    }
+
     if (this.proxyRes) {
       this.proxyRes.destroy()
     }
 
+    this.released = true
     this.req = null
     this.resOrSocket = null
     this.onRes = null
@@ -410,12 +432,14 @@ class ProxyResponseHandler {
 
   static create (req, resOrSocket, onRes, proxyErrorHandler) {
     const handler = ProxyResponseHandler.pool.pop() || new ProxyResponseHandler()
+    handler.released = false
     handler.req = req
     handler.resOrSocket = resOrSocket
     handler.onRes = onRes
     handler.proxyErrorHandler = proxyErrorHandler
     handler.proxyRes = null
     handler.req.on('close', handler._release)
+    handler.req.on('error', handler._release)
     return handler._handle
   }
 }
@@ -423,6 +447,7 @@ ProxyResponseHandler.pool = []
 
 class ProxyUpgradeHandler {
   constructor () {
+    this.released = true
     this.req = null
     this.resOrSocket = null
     this.proxyErrorHandler = null
@@ -470,6 +495,10 @@ class ProxyUpgradeHandler {
   }
 
   _release () {
+    if (this.released) {
+      return
+    }
+
     if (this.proxyRes) {
       this.proxyRes.destroy()
     }
@@ -477,6 +506,7 @@ class ProxyUpgradeHandler {
       this.proxySocket.destroy()
     }
 
+    this.released = true
     this.req = null
     this.resOrSocket = null
     this.proxyErrorHandler = null
@@ -488,10 +518,12 @@ class ProxyUpgradeHandler {
 
   static create (req, resOrSocket, proxyErrorHandler) {
     const handler = ProxyUpgradeHandler.pool.pop() || new ProxyUpgradeHandler()
+    handler.released = false
     handler.req = req
     handler.resOrSocket = resOrSocket
     handler.proxyErrorHandler = proxyErrorHandler
     handler.req.on('close', handler._release)
+    handler.req.on('error', handler._release)
     return handler._handle
   }
 }
