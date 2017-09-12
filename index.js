@@ -216,17 +216,16 @@ class ErrorHandler {
     this.req = null
     this.resOrSocket = null
     this.callback = null
-
-    this._release = this._release.bind(this)
-    this._handle = this._handle.bind(this)
-    this._handle.requestTimeout = this._requestTimeout.bind(this)
+    this.release = this.release.bind(this)
+    this.handle = this.handle.bind(this)
+    this.handle.requestTimeout = this._requestTimeout.bind(this)
   }
 
   _requestTimeout () {
-    this._handle(createError('request timeout', null, 408))
+    this.handle(createError('request timeout', null, 408))
   }
 
-  _handle (err, statusCode = err.statusCode || 500) {
+  handle (err, statusCode = err.statusCode || 500) {
     if (this.hasError) {
       return
     }
@@ -250,7 +249,7 @@ class ErrorHandler {
     }
   }
 
-  _release () {
+  release () {
     this.hasError = false
     this.req = null
     this.resOrSocket = null
@@ -265,8 +264,8 @@ class ErrorHandler {
     handler.req = req
     handler.resOrSocket = resOrSocket
     handler.callback = callback
-    OnFinished.create(req, handler._release)
-    return handler._handle
+    OnFinished.create(req, handler)
+    return handler.handle
   }
 }
 ErrorHandler.pool = []
@@ -278,14 +277,13 @@ class ProxyErrorHandler {
     this.proxyReq = null
     this.errorHandler = null
     this.hpeExpr = /HPE_INVALID/
-
-    this._release = this._release.bind(this)
-    this._handle = this._handle.bind(this)
-    this._handle.gatewayTimeout = this._gatewayTimeout.bind(this)
-    this._handle.socketHangup = this._socketHangup.bind(this)
+    this.release = this.release.bind(this)
+    this.handle = this.handle.bind(this)
+    this.handle.gatewayTimeout = this.gatewayTimeout.bind(this)
+    this.handle.socketHangup = this.socketHangup.bind(this)
   }
 
-  _handle (err) {
+  handle (err) {
     if (this.hasError) {
       return
     }
@@ -308,12 +306,12 @@ class ProxyErrorHandler {
     this.errorHandler(err)
   }
 
-  _gatewayTimeout () {
-    this._handle(createError('gateway timeout', null, 504))
+  gatewayTimeout () {
+    this.handle(createError('gateway timeout', null, 504))
   }
 
-  _socketHangup () {
-    this._handle(createError('socket hang up', 'ECONNRESET', 502))
+  socketHangup () {
+    this.handle(createError('socket hang up', 'ECONNRESET', 502))
   }
 
   _abort () {
@@ -322,7 +320,7 @@ class ProxyErrorHandler {
     }
   }
 
-  _release () {
+  release () {
     this._abort()
 
     this.hasError = false
@@ -338,8 +336,8 @@ class ProxyErrorHandler {
     handler.req = req
     handler.proxyReq = proxyReq
     handler.errorHandler = errorHandler
-    OnFinished.create(req, handler._release)
-    return handler._handle
+    OnFinished.create(req, handler)
+    return handler.handle
   }
 }
 ProxyErrorHandler.pool = []
@@ -351,17 +349,15 @@ class ProxyResponseHandler {
     this.onRes = null
     this.proxyErrorHandler = null
     this.proxyRes = null
-
-    this._handle = this._handle.bind(this)
-    this._addTrailers = this._addTrailers.bind(this)
-    this._release = this._release.bind(this)
+    this.handle = this.handle.bind(this)
+    this.addTrailers = this.addTrailers.bind(this)
   }
 
-  _addTrailers () {
+  addTrailers () {
     this.resOrSocket.addTrailers(this.proxyRes.trailers)
   }
 
-  _handle (proxyRes) {
+  handle (proxyRes) {
     this.proxyRes = proxyRes
 
     proxyRes.on('aborted', this.proxyErrorHandler.socketHangup)
@@ -392,13 +388,13 @@ class ProxyResponseHandler {
 
       res.writeHead(res.statusCode)
       proxyRes
-        .on('end', this._addTrailers)
+        .on('end', this.addTrailers)
         .on('error', this.proxyErrorHandler)
         .pipe(res)
     }
   }
 
-  _release () {
+  release () {
     if (this.proxyRes) {
       this.proxyRes.destroy()
     }
@@ -419,8 +415,8 @@ class ProxyResponseHandler {
     handler.onRes = onRes
     handler.proxyErrorHandler = proxyErrorHandler
     handler.proxyRes = null
-    OnFinished.create(req, handler._release)
-    return handler._handle
+    OnFinished.create(req, handler)
+    return handler.handle
   }
 }
 ProxyResponseHandler.pool = []
@@ -432,12 +428,10 @@ class ProxyUpgradeHandler {
     this.proxyErrorHandler = null
     this.proxyRes = null
     this.proxySocket = null
-
-    this._release = this._release.bind(this)
-    this._handle = this._handle.bind(this)
+    this.handle = this.handle.bind(this)
   }
 
-  _handle (proxyRes, proxySocket, proxyHead) {
+  handle (proxyRes, proxySocket, proxyHead) {
     this.proxyRes = proxyRes
     this.proxySocket = proxySocket
 
@@ -473,7 +467,7 @@ class ProxyUpgradeHandler {
       .pipe(proxySocket)
   }
 
-  _release () {
+  release () {
     if (this.proxyRes) {
       this.proxyRes.destroy()
     }
@@ -495,8 +489,8 @@ class ProxyUpgradeHandler {
     handler.req = req
     handler.socket = socket
     handler.proxyErrorHandler = proxyErrorHandler
-    OnFinished.create(req, handler._release)
-    return handler._handle
+    OnFinished.create(req, handler)
+    return handler.handle
   }
 }
 ProxyUpgradeHandler.pool = []
@@ -504,35 +498,35 @@ ProxyUpgradeHandler.pool = []
 class OnFinished {
   constructor () {
     this.req = null
-    this.callback = null
-
-    this._handle = this._handle.bind(this)
+    this.handler = null
+    this.handle = this.handle.bind(this)
   }
 
-  _handle () {
+  handle () {
     if (this.req.stream) {
-      this.req.stream.removeListener('streamClosed', this._handle)
-      this.req.stream.removeListener('error', this._handle)
+      this.req.stream.removeListener('streamClosed', this.handle)
+      this.req.stream.removeListener('error', this.handle)
     } else {
-      this.req.removeListener('close', this._handle)
-      this.req.removeListener('error', this._handle)
+      this.req.removeListener('close', this.handle)
+      this.req.removeListener('error', this.handle)
     }
 
-    this.callback = null
+    this.handler.release()
+    this.handler = null
 
     OnFinished.pool.push(this)
   }
 
-  static create (req, callback) {
+  static create (req, handler) {
     const onFinished = OnFinished.pool.pop() || new OnFinished()
     onFinished.req = req
-    onFinished.callback = callback
+    onFinished.handler = handler
     if (req.stream) {
-      req.stream.on('streamClosed', onFinished._handle)
-      req.stream.on('error', onFinished._handle)
+      req.stream.on('streamClosed', onFinished.handle)
+      req.stream.on('error', onFinished.handle)
     } else {
-      req.on('close', onFinished._handle)
-      req.on('error', onFinished._handle)
+      req.on('close', onFinished.handle)
+      req.on('error', onFinished.handle)
     }
   }
 }
