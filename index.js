@@ -58,7 +58,11 @@ function impl (req, resOrSocket, headOrNil, {
       resOrSocket.end()
     }
 
-    onProxyError(err, req, resOrSocket)
+    if (onProxyError) {
+      onProxyError(err, req, resOrSocket)
+    } else {
+      throw err
+    }
   }
 
   try {
