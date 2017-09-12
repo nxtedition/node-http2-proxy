@@ -132,6 +132,10 @@ function proxy (req, resOrSocket, proxyReq, onRes, errorHandler) {
 }
 
 function getRequestHeaders (req) {
+  const host = req.headers[HTTP2_HEADER_AUTHORITY] || req.headers[HTTP2_HEADER_HOST]
+  const upgrade = req.headers[HTTP2_HEADER_UPGRADE]
+  const forwarded = req.headers[HTTP2_HEADER_FORWARDED]
+
   const headers = setupHeaders(Object.assign({}, req.headers))
 
   // Remove pseudo headers
@@ -140,7 +144,7 @@ function getRequestHeaders (req) {
   delete headers[HTTP2_HEADER_PATH]
   delete headers[HTTP2_HEADER_SCHEME]
 
-  if (req.headers[HTTP2_HEADER_UPGRADE]) {
+  if (upgrade) {
     headers[HTTP2_HEADER_CONNECTION] = 'upgrade'
     headers[HTTP2_HEADER_UPGRADE] = 'websocket'
   }
@@ -148,10 +152,10 @@ function getRequestHeaders (req) {
   headers[HTTP2_HEADER_FORWARDED] = `by=${req.socket.localAddress}`
   headers[HTTP2_HEADER_FORWARDED] += `; for=${req.socket.remoteAddress}`
 
-  if (req.headers[HTTP2_HEADER_FORWARDED]) {
+  if (forwarded) {
     const expr = /for=\s*([^\s]+)/ig
     while (true) {
-      const m = expr.exec(req.headers[HTTP2_HEADER_FORWARDED])
+      const m = expr.exec(forwarded)
       if (!m) {
         break
       }
@@ -159,7 +163,6 @@ function getRequestHeaders (req) {
     }
   }
 
-  const host = req.headers[HTTP2_HEADER_AUTHORITY] || req.headers[HTTP2_HEADER_HOST]
   if (host) {
     headers[HTTP2_HEADER_FORWARDED] += `; host=${host}`
   }
