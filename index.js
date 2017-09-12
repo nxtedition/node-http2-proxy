@@ -397,6 +397,10 @@ class ProxyResponseHandler {
   }
 
   _release () {
+    if (this.proxyRes) {
+      this.proxyRes.destroy()
+    }
+
     this.req = null
     this.resOrSocket = null
     this.onRes = null
@@ -471,8 +475,12 @@ class ProxyUpgradeHandler {
   }
 
   _release () {
-    this.proxyRes.destroy()
-    this.proxySocket.destroy()
+    if (this.proxyRes) {
+      this.proxyRes.destroy()
+    }
+    if (this.proxySocket) {
+      this.proxySocket.destroy()
+    }
 
     this.req = null
     this.resOrSocket = null
