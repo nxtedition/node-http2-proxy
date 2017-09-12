@@ -143,6 +143,8 @@ function impl (req, resOrSocket, headOrNil, {
 function proxy (req, resOrSocket, options, onRes, onError) {
   const proxyReq = http.request(options)
 
+  let hasError = false
+
   const abort = () => {
     if (!proxyReq.aborted) {
       proxyReq.abort()
@@ -150,6 +152,10 @@ function proxy (req, resOrSocket, options, onRes, onError) {
   }
 
   const callback = err => {
+    if (hasError) {
+      return
+    }
+    hasError = true
     req.removeListener('close', abort)
     abort()
     onError(err)
