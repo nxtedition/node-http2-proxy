@@ -1,6 +1,6 @@
 {
   "name": "http2-proxy",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "scripts": {
     "dev": "nodemon --inspect=9308 --expose-http2 src",
     "precommit": "standard",
