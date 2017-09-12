@@ -256,6 +256,7 @@ class ErrorHandler {
     this.req = null
     this.resOrSocket = null
     this.callback = null
+
     ErrorHandler.pool.push(this)
   }
 
@@ -328,6 +329,7 @@ class ProxyErrorHandler {
     this.req = null
     this.proxyReq = null
     this.errorHandler = null
+
     ProxyErrorHandler.pool.push(this)
   }
 
@@ -406,6 +408,7 @@ class ProxyResponseHandler {
     this.onRes = null
     this.proxyErrorHandler = null
     this.proxyRes = null
+
     ProxyResponseHandler.pool.push(this)
   }
 
@@ -487,6 +490,7 @@ class ProxyUpgradeHandler {
     this.proxyErrorHandler = null
     this.proxyRes = null
     this.proxySocket = null
+
     ProxyUpgradeHandler.pool.push(this)
   }
 
