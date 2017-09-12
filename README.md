@@ -6,7 +6,6 @@ A simple high performance http/2 & http/1.1 to http/1.1 spec compliant proxy hel
 
 - Proxies HTTP 2, HTTP 1.1 and WebSocket
 - Simple and easy to follow implementation
-- GC friendly with minimal allocations
 - [Hop by hop header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers)
 - [Connection header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection)
 - [Via header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via)
