@@ -64,7 +64,7 @@ function impl (req, resOrSocket, headOrNil, {
       }
     }
 
-    if (!/1\.1|2\.\d/.test(req.httpVersion)) {
+    if (req.httpVersion !== '1.1' && req.httpVersion !== '2.0') {
       throw createError('http version not supported', null, 505)
     }
 
