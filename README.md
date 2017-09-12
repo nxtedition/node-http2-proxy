@@ -87,6 +87,8 @@ server.on('request', (req, res) => {
 - `options`: see [Options](#options)
 - `onProxyError(err)`: called on error
 
+See [`request`](https://nodejs.org/api/http.html#http_event_request)
+
 #### ws (req, socket, head, options, onProxyError)
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage)
@@ -94,6 +96,8 @@ server.on('request', (req, res) => {
 - `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer)
 - `options`: see [Options](#options)
 - `onProxyError(err)`: called on error
+
+See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
 
 ### Options
 
