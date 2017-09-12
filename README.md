@@ -107,7 +107,7 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
   - `proxyTimeout`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout.
   - `proxyName`: Proxy name used for **Via** header.
   - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout
-  - `onReq(req, options)`: Called before proxy request. Note you cannot keep a reference to the options object as it will be re-used by `http2-proxy`.
+  - `onReq(req, options)`: Called before proxy request.
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
     - `options`: Options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback).
   - `onRes(req, resOrSocket)`: Called before proxy response.
