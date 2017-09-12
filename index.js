@@ -1,4 +1,3 @@
-const createError = require('http-errors')
 const http2 = require('http2')
 const http = require('http')
 const net = require('net')
@@ -67,17 +66,17 @@ function impl (req, resOrSocket, headOrNil, {
   try {
     if (resOrSocket instanceof net.Socket) {
       if (req.method !== 'GET') {
-        throw new createError.MethodNotAllowed()
+        throw createError('method not allowed', null, 405)
       }
 
       if (!req.headers[HTTP2_HEADER_UPGRADE] ||
           req.headers[HTTP2_HEADER_UPGRADE].toLowerCase() !== 'websocket') {
-        throw new createError.BadRequest()
+        throw createError('bad request', null, 400)
       }
     }
 
     if (!/1\.1|2\.\d/.test(req.httpVersion)) {
-      throw new createError.HTTPVersionNotSupported()
+      throw createError('http version not supported', null, 505)
     }
 
     if (proxyName &&
@@ -86,7 +85,7 @@ function impl (req, resOrSocket, headOrNil, {
           .split(',')
           .some(name => name.trim().toLowerCase().endsWith(proxyName.toLowerCase()))
     ) {
-      throw new createError.LoopDetected()
+      throw createError('loop detected', null, 508)
     }
 
     if (timeout) {
@@ -154,28 +153,28 @@ function proxy (req, resOrSocket, options, onRes, onError) {
     .pipe(proxyReq)
     .on('error', err => {
       if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-        callback(new createError.ServiceUnavailable(err.message))
+        err.statusCode = 503
+        callback(err)
       } else if (/HPE_INVALID/.test(err.code)) {
-        callback(new createError.BadGateway(err.message))
+        err.statusCode = 502
+        callback(err)
       } else if (err.code === 'ECONNRESET') {
         if (!proxyReq.aborted) {
-          callback(new createError.BadGateway('socket hang up'))
+          err.statusCode = 502
+          callback(err)
         }
       } else {
+        err.statusCode = 500
         callback(err)
       }
     })
     // NOTE http.ClientRequest doesn't emit 'aborted'. Instead it emits
     // a "socket hang up" error.
     // .on('aborted', () => callback(new createError.BadGateway('socket hang up')))
-    .on('timeout', () => callback(new createError.GatewayTimeout()))
+    .on('timeout', () => callback(createError('gateway timeout', null, 504)))
     .on('response', proxyRes => {
       try {
-        proxyRes.on('aborted', () => {
-          const err = new Error('socket hang up')
-          err.code = 'ECONNRESET'
-          callback(err)
-        })
+        proxyRes.on('aborted', () => callback(createError('socket hang up', 'ECONNRESET', 502)))
 
         if (resOrSocket instanceof net.Socket) {
           if (!proxyRes.upgrade) {
@@ -310,4 +309,11 @@ function setupHeaders (headers) {
   delete headers[HTTP2_HEADER_HTTP2_SETTINGS]
 
   return headers
+}
+
+function createError (msg, code, statusCode) {
+  const err = new Error(msg)
+  err.code = code
+  err.statusCode = statusCode
+  return err
 }
