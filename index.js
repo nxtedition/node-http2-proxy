@@ -52,69 +52,65 @@ function impl (req, resOrSocket, headOrNil, {
   const incoming = req.stream || req
   incoming.on('error', errorHandler)
 
-  try {
-    if (resOrSocket instanceof net.Socket) {
-      if (req.method !== 'GET') {
-        throw createError('method not allowed', null, 405)
-      }
-
-      if (!req.headers[HTTP2_HEADER_UPGRADE] ||
-          req.headers[HTTP2_HEADER_UPGRADE].toLowerCase() !== 'websocket') {
-        throw createError('bad request', null, 400)
-      }
+  if (resOrSocket instanceof net.Socket) {
+    if (req.method !== 'GET') {
+      return errorHandler(createError('method not allowed', null, 405))
     }
 
-    if (req.httpVersion !== '1.1' && req.httpVersion !== '2.0') {
-      throw createError('http version not supported', null, 505)
+    if (!req.headers[HTTP2_HEADER_UPGRADE] ||
+        req.headers[HTTP2_HEADER_UPGRADE].toLowerCase() !== 'websocket') {
+      return errorHandler(createError('bad request', null, 400))
     }
-
-    if (proxyName && req.headers[HTTP2_HEADER_VIA]) {
-      for (const name of req.headers[HTTP2_HEADER_VIA].split(',')) {
-        if (sanitize(name).endsWith(proxyName.toLowerCase())) {
-          throw createError('loop detected', null, 508)
-        }
-      }
-    }
-
-    if (timeout) {
-      req.setTimeout(timeout, errorHandler.requestTimeout)
-    }
-
-    if (resOrSocket instanceof net.Socket) {
-      if (headOrNil && headOrNil.length) {
-        resOrSocket.unshift(headOrNil)
-      }
-
-      setupSocket(resOrSocket)
-    }
-
-    const headers = getRequestHeaders(req)
-
-    if (proxyName) {
-      if (headers[HTTP2_HEADER_VIA]) {
-        headers[HTTP2_HEADER_VIA] += `,${proxyName}`
-      } else {
-        headers[HTTP2_HEADER_VIA] = proxyName
-      }
-    }
-
-    const options = {
-      method: req.method,
-      hostname,
-      port,
-      path: req.url,
-      headers,
-      timeout: proxyTimeout
-    }
-
-    if (onReq) {
-      onReq(req, options)
-    }
-
-    return proxy(req, resOrSocket, options, onRes, errorHandler)
-  } catch (err) {
-    return errorHandler(err)
   }
+
+  if (req.httpVersion !== '1.1' && req.httpVersion !== '2.0') {
+    return errorHandler(createError('http version not supported', null, 505))
+  }
+
+  if (proxyName && req.headers[HTTP2_HEADER_VIA]) {
+    for (const name of req.headers[HTTP2_HEADER_VIA].split(',')) {
+      if (sanitize(name).endsWith(proxyName.toLowerCase())) {
+        return errorHandler(createError('loop detected', null, 508))
+      }
+    }
+  }
+
+  if (timeout) {
+    req.setTimeout(timeout, errorHandler.requestTimeout)
+  }
+
+  if (resOrSocket instanceof net.Socket) {
+    if (headOrNil && headOrNil.length) {
+      resOrSocket.unshift(headOrNil)
+    }
+
+    setupSocket(resOrSocket)
+  }
+
+  const headers = getRequestHeaders(req)
+
+  if (proxyName) {
+    if (headers[HTTP2_HEADER_VIA]) {
+      headers[HTTP2_HEADER_VIA] += `,${proxyName}`
+    } else {
+      headers[HTTP2_HEADER_VIA] = proxyName
+    }
+  }
+
+  const options = {
+    method: req.method,
+    hostname,
+    port,
+    path: req.url,
+    headers,
+    timeout: proxyTimeout
+  }
+
+  if (onReq) {
+    onReq(req, options)
+  }
+
+  proxy(req, resOrSocket, options, onRes, errorHandler)
 }
 
 function proxy (req, resOrSocket, options, onRes, errorHandler) {
@@ -365,37 +361,33 @@ class ProxyResponseHandler {
   _handle (proxyRes) {
     this.proxyRes = proxyRes
 
-    try {
-      proxyRes.on('aborted', this.proxyErrorHandler.socketHangup)
+    proxyRes.on('aborted', this.proxyErrorHandler.socketHangup)
 
-      if (this.resOrSocket instanceof net.Socket) {
-        if (this.onRes) {
-          this.onRes(this.req, this.resOrSocket)
-        }
-
-        if (!proxyRes.upgrade) {
-          this.resOrSocket.end()
-        }
-      } else {
-        setupHeaders(proxyRes.headers)
-
-        this.resOrSocket.statusCode = proxyRes.statusCode
-        for (const key of Object.keys(proxyRes.headers)) {
-          this.resOrSocket.setHeader(key, proxyRes.headers[key])
-        }
-
-        if (this.onRes) {
-          this.onRes(this.req, this.resOrSocket)
-        }
-
-        this.resOrSocket.writeHead(this.resOrSocket.statusCode)
-        proxyRes.on('end', this._addTrailers)
-        proxyRes
-          .on('error', this.proxyErrorHandler)
-          .pipe(this.resOrSocket)
+    if (this.resOrSocket instanceof net.Socket) {
+      if (this.onRes) {
+        this.onRes(this.req, this.resOrSocket)
       }
-    } catch (err) {
-      this.proxyErrorHandler(err)
+
+      if (!proxyRes.upgrade) {
+        this.resOrSocket.end()
+      }
+    } else {
+      setupHeaders(proxyRes.headers)
+
+      this.resOrSocket.statusCode = proxyRes.statusCode
+      for (const key of Object.keys(proxyRes.headers)) {
+        this.resOrSocket.setHeader(key, proxyRes.headers[key])
+      }
+
+      if (this.onRes) {
+        this.onRes(this.req, this.resOrSocket)
+      }
+
+      this.resOrSocket.writeHead(this.resOrSocket.statusCode)
+      proxyRes.on('end', this._addTrailers)
+      proxyRes
+        .on('error', this.proxyErrorHandler)
+        .pipe(this.resOrSocket)
     }
   }
 
@@ -442,40 +434,36 @@ class ProxyUpgradeHandler {
     this.proxyRes = proxyRes
     this.proxySocket = proxySocket
 
-    try {
-      setupSocket(proxySocket)
+    setupSocket(proxySocket)
 
-      if (proxyHead && proxyHead.length) {
-        proxySocket.unshift(proxyHead)
-      }
+    if (proxyHead && proxyHead.length) {
+      proxySocket.unshift(proxyHead)
+    }
 
-      let head = 'HTTP/1.1 101 Switching Protocols'
+    let head = 'HTTP/1.1 101 Switching Protocols'
 
-      for (const key of Object.keys(proxyRes.headers)) {
-        const value = proxyRes.headers[key]
+    for (const key of Object.keys(proxyRes.headers)) {
+      const value = proxyRes.headers[key]
 
-        if (!Array.isArray(value)) {
-          head += '\r\n' + key + ': ' + value
-        } else {
-          for (let i = 0; i < value.length; i++) {
-            head += '\r\n' + key + ': ' + value[i]
-          }
+      if (!Array.isArray(value)) {
+        head += '\r\n' + key + ': ' + value
+      } else {
+        for (let i = 0; i < value.length; i++) {
+          head += '\r\n' + key + ': ' + value[i]
         }
       }
-
-      head += '\r\n\r\n'
-
-      this.resOrSocket.write(head)
-
-      proxyRes.on('error', this.proxyErrorHandler)
-
-      proxySocket
-        .on('error', this.proxyErrorHandler)
-        .pipe(this.resOrSocket)
-        .pipe(proxySocket)
-    } catch (err) {
-      this.proxyErrorHandler(err)
     }
+
+    head += '\r\n\r\n'
+
+    this.resOrSocket.write(head)
+
+    proxyRes.on('error', this.proxyErrorHandler)
+
+    proxySocket
+      .on('error', this.proxyErrorHandler)
+      .pipe(this.resOrSocket)
+      .pipe(proxySocket)
   }
 
   _release () {
