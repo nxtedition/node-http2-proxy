@@ -156,6 +156,19 @@ function proxy (req, resOrSocket, options, onRes, onError) {
       return
     }
     hasError = true
+
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+      err.statusCode = 503
+    } else if (/HPE_INVALID/.test(err.code)) {
+      err.statusCode = 502
+    } else if (err.code === 'ECONNRESET') {
+      if (!proxyReq.aborted) {
+        err.statusCode = 502
+      } else {
+        return
+      }
+    }
+
     req.removeListener('close', abort)
     abort()
     onError(err)
@@ -165,22 +178,7 @@ function proxy (req, resOrSocket, options, onRes, onError) {
 
   req
     .pipe(proxyReq)
-    .on('error', err => {
-      if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-        err.statusCode = 503
-        onProxyError(err)
-      } else if (/HPE_INVALID/.test(err.code)) {
-        err.statusCode = 502
-        onProxyError(err)
-      } else if (err.code === 'ECONNRESET') {
-        if (!proxyReq.aborted) {
-          err.statusCode = 502
-          onProxyError(err)
-        }
-      } else {
-        onProxyError(err)
-      }
-    })
+    .on('error', onProxyError)
     // NOTE http.ClientRequest emits "socket hang up" error when aborted
     // before having received a response, i.e. there is no need to listen for
     // proxyReq.on('aborted', ...).
@@ -210,9 +208,7 @@ function proxy (req, resOrSocket, options, onRes, onError) {
           }
 
           resOrSocket.writeHead(resOrSocket.statusCode)
-          proxyRes.on('end', () => {
-            resOrSocket.addTrailers(proxyRes.trailers)
-          })
+          proxyRes.on('end', () => resOrSocket.addTrailers(proxyRes.trailers))
           proxyRes
             .on('error', onProxyError)
             .pipe(resOrSocket)
