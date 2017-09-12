@@ -102,7 +102,7 @@ function impl (req, resOrSocket, headOrNil, {
     }
 
     if (timeout) {
-      req.setTimeout(timeout, () => onError(new createError.RequestTimeout()))
+      req.setTimeout(timeout, () => onError(createError('request timeout', null, 408)))
     }
 
     if (resOrSocket instanceof net.Socket) {
