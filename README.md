@@ -101,7 +101,7 @@ server.on('request', (req, res) => {
   - `port`: proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target port
   - `proxyTimeout`: proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout
   - `proxyName`: proxy name used for **Via** header
-  - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) timeout
+  - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout
   - `onReq(req, options)`: called before proxy request
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
     - `options`: options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback)
