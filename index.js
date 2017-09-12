@@ -240,8 +240,9 @@ function proxy (req, resOrSocket, options, onRes, onError) {
             .join('\r\n') + '\r\n\r\n'
         )
 
-        // XXX Do we need to handle `proxyRes.on('error', ...)`?
+        // XXX Does this overlap socket errors, i.e. duplicate emits?
         // (https://github.com/nodejs/node/issues/15360)
+        proxyRes.on('error', callback)
 
         proxySocket
           .on('error', callback)
