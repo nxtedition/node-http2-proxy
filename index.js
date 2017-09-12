@@ -83,7 +83,7 @@ function impl (req, resOrSocket, headOrNil, {
         req.headers[HTTP2_HEADER_VIA] &&
         req.headers[HTTP2_HEADER_VIA]
           .split(',')
-          .some(name => name.trim().toLowerCase().endsWith(proxyName.toLowerCase()))
+          .some(name => sanatizeHeaderName(name).endsWith(proxyName.toLowerCase()))
     ) {
       throw createError('loop detected', null, 508)
     }
@@ -294,8 +294,8 @@ function setupHeaders (headers) {
   const connection = headers[HTTP2_HEADER_CONNECTION]
 
   if (connection && connection !== 'close') {
-    for (const key of connection.split(',')) {
-      delete headers[key.trim().toLowerCase()]
+    for (const name of connection.split(',')) {
+      delete headers[sanatizeHeaderName(name)]
     }
   }
 
@@ -309,6 +309,10 @@ function setupHeaders (headers) {
   delete headers[HTTP2_HEADER_HTTP2_SETTINGS]
 
   return headers
+}
+
+function sanatizeHeaderName (name) {
+  return name.trim().toLowerCase()
 }
 
 function createError (msg, code, statusCode) {
