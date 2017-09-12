@@ -270,7 +270,6 @@ function getRequestHeaders (req) {
   const fwd = {
     by: req.headers[HTTP2_HEADER_AUTHORITY] || req.headers[HTTP2_HEADER_HOST],
     proto: req.socket.encrypted ? 'https' : 'http',
-    // TODO: Is this correct?
     for: [ req.socket.remoteAddress ]
   }
 
