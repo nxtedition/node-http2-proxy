@@ -46,7 +46,7 @@ server.on('upgrade', (req, socket, head) => {
   proxy.ws(req, socket, head, {
     hostname: 'localhost'
     port: 9000
-  }, err => console.error(err, 'proxy error'))
+  }, err => console.error('proxy error', err))
 })
 ```
 
@@ -58,7 +58,7 @@ server.on('request', (req, res) => {
     hostname: 'localhost'
     port: 9000,
     onRes: (req, res) => helmet(req, res, () => {})
-  }, err => console.error(err, 'proxy error'))
+  }, err => console.error('proxy error', err))
 })
 ```
 
