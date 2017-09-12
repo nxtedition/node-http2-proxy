@@ -69,7 +69,7 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000,
-    onReq: (req, headers) => {
+    onReq: (req, { headers }) => {
       headers['x-forwarded-for'] = req.socket.remoteAddress
       headers['x-forwarded-proto'] = req.socket.encrypted ? 'https' : 'http'
       headers['x-forwarded-host'] = req.headers['host']
@@ -102,9 +102,9 @@ server.on('request', (req, res) => {
   - `timeout`: incoming request timeout
   - `proxyTimeout`: proxy request timeout
   - `proxyName`: proxy name used for **Via** header
-  - `onReq(req, headers)`: called before proxy request
+  - `onReq(req, options)`: called before proxy request
     - `req`: `http.IncomingMessage` or `http2.Http2ServerRequest`
-    - `headers`: `http.ClientRequest.headers`
+    - `options`: options passed to `http.ClientRequest`
   - `onRes(req, res)`: called before proxy response
     - `req`: `http.IncomingMessage` or `http2.Http2ServerRequest`
     - `res`: `http.ServerResponse` or `http2.Http2ServerResponse`

@@ -110,8 +110,17 @@ function impl (req, resOrSocket, headOrNil, {
       }
     }
 
+    const options = {
+      method: req.method,
+      hostname,
+      port,
+      path: req.url,
+      headers,
+      timeout: proxyTimeout
+    }
+
     if (onReq) {
-      onReq(req, headers)
+      onReq(req, options)
     }
 
     // NOTE http2.Http2ServerRequest doesn't forward stream errors.
@@ -119,14 +128,7 @@ function impl (req, resOrSocket, headOrNil, {
 
     incoming.on('error', onError)
 
-    return proxy(req, resOrSocket, {
-      method: req.method,
-      hostname,
-      port,
-      path: req.url,
-      headers,
-      timeout: proxyTimeout
-    }, onRes, onError)
+    return proxy(req, resOrSocket, options, onRes, onError)
   } catch (err) {
     return onError(err)
   }
