@@ -28,11 +28,11 @@ if (NODE_VER[0] < 9 && (NODE_VER[0] !== 8 || NODE_VER[1] > 4)) {
 }
 
 module.exports = {
-  ws (req, socket, head, options, onProxyError) {
-    impl(req, socket, head, options, onProxyError)
+  ws (req, socket, head, options, callback) {
+    impl(req, socket, head, options, callback)
   },
-  web (req, res, options, onProxyError) {
-    impl(req, res, null, options, onProxyError)
+  web (req, res, options, callback) {
+    impl(req, res, null, options, callback)
   }
 }
 
@@ -44,7 +44,7 @@ function impl (req, resOrSocket, headOrNil, {
   proxyName,
   onReq,
   onRes
-}, onProxyError) {
+}, callback) {
   let hasError = false
 
   function onError (err, statusCode = err.statusCode || 500) {
@@ -64,8 +64,8 @@ function impl (req, resOrSocket, headOrNil, {
       resOrSocket.end()
     }
 
-    if (onProxyError) {
-      onProxyError(err, req, resOrSocket)
+    if (callback) {
+      callback(err, req, resOrSocket)
     } else {
       throw err
     }
@@ -151,7 +151,7 @@ function proxy (req, resOrSocket, options, onRes, onError) {
     }
   }
 
-  const callback = err => {
+  const onProxyError = err => {
     if (hasError) {
       return
     }
@@ -168,26 +168,26 @@ function proxy (req, resOrSocket, options, onRes, onError) {
     .on('error', err => {
       if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
         err.statusCode = 503
-        callback(err)
+        onProxyError(err)
       } else if (/HPE_INVALID/.test(err.code)) {
         err.statusCode = 502
-        callback(err)
+        onProxyError(err)
       } else if (err.code === 'ECONNRESET') {
         if (!proxyReq.aborted) {
           err.statusCode = 502
-          callback(err)
+          onProxyError(err)
         }
       } else {
-        callback(err)
+        onProxyError(err)
       }
     })
     // NOTE http.ClientRequest emits "socket hang up" error when aborted
     // before having received a response, i.e. there is no need to listen for
     // proxyReq.on('aborted', ...).
-    .on('timeout', () => callback(createError('gateway timeout', null, 504)))
+    .on('timeout', () => onProxyError(createError('gateway timeout', null, 504)))
     .on('response', proxyRes => {
       try {
-        proxyRes.on('aborted', () => callback(createError('socket hang up', 'ECONNRESET', 502)))
+        proxyRes.on('aborted', () => onProxyError(createError('socket hang up', 'ECONNRESET', 502)))
 
         if (resOrSocket instanceof net.Socket) {
           if (onRes) {
@@ -214,11 +214,11 @@ function proxy (req, resOrSocket, options, onRes, onError) {
             resOrSocket.addTrailers(proxyRes.trailers)
           })
           proxyRes
-            .on('error', callback)
+            .on('error', onProxyError)
             .pipe(resOrSocket)
         }
       } catch (err) {
-        callback(err)
+        onProxyError(err)
       }
     })
 
@@ -251,14 +251,14 @@ function proxy (req, resOrSocket, options, onRes, onError) {
             .join('\r\n') + '\r\n\r\n'
         )
 
-        proxyRes.on('error', callback)
+        proxyRes.on('error', onProxyError)
 
         proxySocket
-          .on('error', callback)
+          .on('error', onProxyError)
           .pipe(resOrSocket)
           .pipe(proxySocket)
       } catch (err) {
-        callback(err)
+        onProxyError(err)
       }
     })
   }
