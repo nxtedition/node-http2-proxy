@@ -22,6 +22,7 @@ const {
 } = http2.constants
 
 const NODE_VER = process.version.match(/v(\d+).(\d+).(\d+)(?:-(.*))/).slice(1)
+const REQ_OPTIONS = {}
 
 if (NODE_VER[0] < 9 && (NODE_VER[0] !== 8 || NODE_VER[1] > 4)) {
   throw new Error(`unsupported node version (${process.version} < 8.5.0)`)
@@ -97,24 +98,23 @@ function impl (req, resOrSocket, headOrNil, {
     }
   }
 
-  const options = {
-    method: req.method,
-    hostname,
-    port,
-    path: req.url,
-    headers,
-    timeout: proxyTimeout
-  }
+  REQ_OPTIONS.method = req.method
+  REQ_OPTIONS.hostname = hostname
+  REQ_OPTIONS.port = port
+  REQ_OPTIONS.path = req.url
+  REQ_OPTIONS.headers = headers
+  REQ_OPTIONS.timeout = proxyTimeout
 
   if (onReq) {
-    onReq(req, options)
+    onReq(req, REQ_OPTIONS)
   }
 
-  proxy(req, resOrSocket, options, onRes, errorHandler)
+  const proxyReq = http.request(REQ_OPTIONS)
+
+  proxy(req, resOrSocket, proxyReq, onRes, errorHandler)
 }
 
-function proxy (req, resOrSocket, options, onRes, errorHandler) {
-  const proxyReq = http.request(options)
+function proxy (req, resOrSocket, proxyReq, onRes, errorHandler) {
   const proxyErrorHandler = ProxyErrorHandler.create(req, proxyReq, errorHandler)
 
   req
