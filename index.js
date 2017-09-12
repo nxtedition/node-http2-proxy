@@ -231,25 +231,23 @@ function proxy (req, resOrSocket, options, onRes, onError) {
           proxySocket.unshift(proxyHead)
         }
 
-        resOrSocket.write(
-          Object
-            .keys(proxyRes.headers)
-            .reduce((head, key) => {
-              const value = proxyRes.headers[key]
+        let head = 'HTTP/1.1 101 Switching Protocols'
 
-              if (!Array.isArray(value)) {
-                head.push(key + ': ' + value)
-                return head
-              }
+        for (const key of Object.keys(proxyRes.headers)) {
+          const value = proxyRes.headers[key]
 
-              for (let i = 0; i < value.length; i++) {
-                head.push(key + ': ' + value[i])
-              }
+          if (!Array.isArray(value)) {
+            head += '\r\n' + key + ': ' + value
+          } else {
+            for (let i = 0; i < value.length; i++) {
+              head += '\r\n' + key + ': ' + value[i]
+            }
+          }
+        }
 
-              return head
-            }, ['HTTP/1.1 101 Switching Protocols'])
-            .join('\r\n') + '\r\n\r\n'
-        )
+        head += '\r\n\r\n'
+
+        resOrSocket.write(head)
 
         proxyRes.on('error', onProxyError)
 
