@@ -124,9 +124,7 @@ function impl (req, resOrSocket, headOrNil, {
     }
 
     // NOTE http2.Http2ServerRequest doesn't forward stream errors.
-    const incoming = req.stream || req
-
-    incoming.on('error', onError)
+    (req.stream || req).on('error', onError)
 
     return proxy(req, resOrSocket, options, onRes, onError)
   } catch (err) {
