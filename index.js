@@ -181,13 +181,42 @@ function proxy (req, resOrSocket, options, onRes, onError) {
             resOrSocket.end()
           }
         } else {
-          const headers = setupHeaders(proxyRes.headers)
+          setupHeaders(proxyRes.headers)
 
           if (onRes) {
-            onRes(req, headers)
+            if (onRes.length === 3) {
+              onRes(req, proxyRes.headers, {
+                setHeader (key, value) {
+                  proxyRes.headers[sanatizeHeaderName(key)] = value
+                },
+                removeHeader (key) {
+                  delete proxyRes.headers[sanatizeHeaderName(key)]
+                },
+                getHeader (key) {
+                  return proxyRes.headers[sanatizeHeaderName(key)]
+                },
+                hasHeader (key) {
+                  return !!proxyRes.headers[sanatizeHeaderName(key)]
+                },
+                get statusCode () {
+                  return proxyRes.statusCode
+                },
+                set statusCode (value) {
+                  proxyRes.statusCode = value
+                },
+                get statusMessage () {
+                  return proxyRes.statusMessage
+                },
+                set statusMessage (value) {
+                  proxyRes.statusMessage = value
+                }
+              })
+            } else {
+              onRes(req, proxyRes.headers)
+            }
           }
 
-          resOrSocket.writeHead(proxyRes.statusCode, headers)
+          resOrSocket.writeHead(proxyRes.statusCode, proxyRes.headers)
           proxyRes.on('end', () => {
             resOrSocket.addTrailers(proxyRes.trailers)
           })
