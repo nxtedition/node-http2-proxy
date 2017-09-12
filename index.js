@@ -45,34 +45,12 @@ function impl (req, resOrSocket, headOrNil, {
   onReq,
   onRes
 }, callback) {
-  let hasError = false
+  const onError = ErrorHandler.create(req, resOrSocket, callback)
 
-  function onError (err, statusCode = err.statusCode || 500) {
-    if (hasError) {
-      return
-    }
-
-    hasError = true
-
-    if (resOrSocket.closed === true ||
-        resOrSocket.headersSent !== false ||
-        !resOrSocket.writeHead
-    ) {
-      resOrSocket.destroy()
-    } else {
-      resOrSocket.writeHead(statusCode)
-      resOrSocket.end()
-    }
-
-    if (callback) {
-      callback(err, req, resOrSocket)
-    } else {
-      throw err
-    }
-  }
-
-  (req.stream || req).on('error', onError)
   resOrSocket.on('error', onError)
+
+  const incoming = req.stream || req
+  incoming.on('error', onError)
 
   try {
     if (resOrSocket instanceof net.Socket) {
@@ -90,17 +68,16 @@ function impl (req, resOrSocket, headOrNil, {
       throw createError('http version not supported', null, 505)
     }
 
-    if (proxyName &&
-        req.headers[HTTP2_HEADER_VIA] &&
-        req.headers[HTTP2_HEADER_VIA]
-          .split(',')
-          .some(name => sanitize(name).endsWith(proxyName.toLowerCase()))
-    ) {
-      throw createError('loop detected', null, 508)
+    if (proxyName && req.headers[HTTP2_HEADER_VIA]) {
+      for (const name of req.headers[HTTP2_HEADER_VIA].split(',')) {
+        if (sanitize(name).endsWith(proxyName.toLowerCase())) {
+          throw createError('loop detected', null, 508)
+        }
+      }
     }
 
     if (timeout) {
-      req.setTimeout(timeout, () => onError(createError('request timeout', null, 408)))
+      req.setTimeout(timeout, onError.requestTimeout)
     }
 
     if (resOrSocket instanceof net.Socket) {
@@ -143,38 +120,7 @@ function impl (req, resOrSocket, headOrNil, {
 function proxy (req, resOrSocket, options, onRes, onError) {
   const proxyReq = http.request(options)
 
-  const abort = () => {
-    if (!proxyReq.aborted) {
-      proxyReq.abort()
-    }
-  }
-
-  let hasError = false
-
-  const onProxyError = err => {
-    if (hasError) {
-      return
-    }
-    hasError = true
-
-    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-      err.statusCode = 503
-    } else if (/HPE_INVALID/.test(err.code)) {
-      err.statusCode = 502
-    } else if (err.code === 'ECONNRESET') {
-      if (!proxyReq.aborted) {
-        err.statusCode = 502
-      } else {
-        return
-      }
-    }
-
-    req.removeListener('close', abort)
-    abort()
-    onError(err)
-  }
-
-  req.on('close', abort)
+  const onProxyError = ProxyErrorHandler.create(req, proxyReq, onError)
 
   req
     .pipe(proxyReq)
@@ -182,79 +128,11 @@ function proxy (req, resOrSocket, options, onRes, onError) {
     // NOTE http.ClientRequest emits "socket hang up" error when aborted
     // before having received a response, i.e. there is no need to listen for
     // proxyReq.on('aborted', ...).
-    .on('timeout', () => onProxyError(createError('gateway timeout', null, 504)))
-    .on('response', proxyRes => {
-      try {
-        proxyRes.on('aborted', () => onProxyError(createError('socket hang up', 'ECONNRESET', 502)))
-
-        if (resOrSocket instanceof net.Socket) {
-          if (onRes) {
-            onRes(req, resOrSocket)
-          }
-
-          if (!proxyRes.upgrade) {
-            resOrSocket.end()
-          }
-        } else {
-          setupHeaders(proxyRes.headers)
-
-          resOrSocket.statusCode = proxyRes.statusCode
-          for (const key of Object.keys(proxyRes.headers)) {
-            resOrSocket.setHeader(key, proxyRes.headers[key])
-          }
-
-          if (onRes) {
-            onRes(req, resOrSocket)
-          }
-
-          resOrSocket.writeHead(resOrSocket.statusCode)
-          proxyRes.on('end', () => resOrSocket.addTrailers(proxyRes.trailers))
-          proxyRes
-            .on('error', onProxyError)
-            .pipe(resOrSocket)
-        }
-      } catch (err) {
-        onProxyError(err)
-      }
-    })
+    .on('timeout', onProxyError.gatewayTimeout)
+    .on('response', ProxyResponseHandler.create(req, resOrSocket, onRes, onProxyError))
 
   if (resOrSocket instanceof net.Socket) {
-    proxyReq.on('upgrade', (proxyRes, proxySocket, proxyHead) => {
-      try {
-        setupSocket(proxySocket)
-
-        if (proxyHead && proxyHead.length) {
-          proxySocket.unshift(proxyHead)
-        }
-
-        let head = 'HTTP/1.1 101 Switching Protocols'
-
-        for (const key of Object.keys(proxyRes.headers)) {
-          const value = proxyRes.headers[key]
-
-          if (!Array.isArray(value)) {
-            head += '\r\n' + key + ': ' + value
-          } else {
-            for (let i = 0; i < value.length; i++) {
-              head += '\r\n' + key + ': ' + value[i]
-            }
-          }
-        }
-
-        head += '\r\n\r\n'
-
-        resOrSocket.write(head)
-
-        proxyRes.on('error', onProxyError)
-
-        proxySocket
-          .on('error', onProxyError)
-          .pipe(resOrSocket)
-          .pipe(proxySocket)
-      } catch (err) {
-        onProxyError(err)
-      }
-    })
+    proxyReq.on('upgrade', ProxyUpgradeHandler.create(req, resOrSocket, onProxyError))
   }
 }
 
@@ -333,3 +211,295 @@ function createError (msg, code, statusCode) {
   err.statusCode = statusCode
   return err
 }
+
+class ErrorHandler {
+  constructor () {
+    this.hasError = false
+    this.req = null
+    this.resOrSocket = null
+    this.callback = null
+
+    this._handle = this._handle.bind(this)
+    this._handle.requestTimeout = this._requestTimeout.bind(this)
+  }
+
+  _requestTimeout () {
+    this._handle(createError('request timeout', null, 408))
+  }
+
+  _handle (err, statusCode = err.statusCode || 500) {
+    if (this.hasError) {
+      return
+    }
+
+    this.hasError = true
+
+    if (this.resOrSocket.closed === true ||
+        this.resOrSocket.headersSent !== false ||
+        !this.resOrSocket.writeHead
+    ) {
+      this.resOrSocket.destroy()
+    } else {
+      this.resOrSocket.writeHead(statusCode)
+      this.resOrSocket.end()
+    }
+
+    if (this.callback) {
+      this.callback(err, this.req, this.resOrSocket)
+      ErrorHandler.release(this)
+    } else {
+      ErrorHandler.release(this)
+      throw err
+    }
+  }
+
+  static create (req, resOrSocket, callback) {
+    const errorHandler = ErrorHandler.pool.pop() || new ErrorHandler()
+    errorHandler.hasError = false
+    errorHandler.req = req
+    errorHandler.resOrSocket = resOrSocket
+    errorHandler.callback = callback
+    return errorHandler._handle
+  }
+
+  static release (obj) {
+    obj.hasError = false
+    obj.req = null
+    obj.resOrSocket = null
+    obj.callback = null
+    ErrorHandler.pool.push(obj)
+  }
+}
+ErrorHandler.pool = []
+
+class ProxyErrorHandler {
+  constructor () {
+    this.hasError = null
+    this.req = null
+    this.proxyReq = null
+    this.onError = null
+
+    this._handle = this._handle.bind(this)
+    this._release = this._release.bind(this)
+    this._handle.gatewayTimeout = this._gatewayTimeout.bind(this)
+    this._handle.socketHangup = this._socketHangup.bind(this)
+  }
+
+  _abort () {
+    if (!this.proxyReq.aborted) {
+      this.proxyReq.abort()
+    }
+  }
+
+  _handle (err) {
+    if (this.hasError) {
+      return
+    }
+
+    this.hasError = true
+
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+      err.statusCode = 503
+    } else if (/HPE_INVALID/.test(err.code)) {
+      err.statusCode = 502
+    } else if (err.code === 'ECONNRESET') {
+      if (!this.proxyReq.aborted) {
+        err.statusCode = 502
+      } else {
+        return
+      }
+    }
+
+    this._abort()
+    this.onError(err)
+  }
+
+  _gatewayTimeout () {
+    this._handle(createError('gateway timeout', null, 504))
+  }
+
+  _socketHangup () {
+    this._handle(createError('socket hang up', 'ECONNRESET', 502))
+  }
+
+  _release () {
+    this.req.removeListener('close', this._release)
+
+    if (this.hasError) {
+      this._abort()
+    }
+
+    this.hasError = null
+    this.req = null
+    this.proxyReq = null
+    this.onError = null
+    ProxyErrorHandler.pool.push(this)
+  }
+
+  static create (req, proxyReq, onError) {
+    const handler = ProxyErrorHandler.pool.pop() || new ProxyErrorHandler()
+    handler.req = req
+    handler.proxyReq = proxyReq
+    handler.onError = onError
+    handler.req.on('close', handler._release)
+    return handler._handle
+  }
+
+  static release (obj) {
+    ProxyErrorHandler.pool.push(obj)
+  }
+}
+ProxyErrorHandler.pool = []
+
+class ProxyResponseHandler {
+  constructor () {
+    this.req = null
+    this.resOrSocket = null
+    this.onRes = null
+    this.onProxyError = null
+    this.proxyRes = null
+
+    this._handle = this._handle.bind(this)
+    this._addTrailers = this._addTrailers.bind(this)
+    this._release = this._release.bind(this)
+  }
+
+  _addTrailers () {
+    this.resOrSocket.addTrailers(this.proxyRes.trailers)
+  }
+
+  _handle (proxyRes) {
+    this.proxyRes = proxyRes
+
+    try {
+      proxyRes.on('aborted', this.onProxyError.socketHangup)
+
+      if (this.resOrSocket instanceof net.Socket) {
+        if (this.onRes) {
+          this.onRes(this.req, this.resOrSocket)
+        }
+
+        if (!proxyRes.upgrade) {
+          this.resOrSocket.end()
+        }
+      } else {
+        setupHeaders(proxyRes.headers)
+
+        this.resOrSocket.statusCode = proxyRes.statusCode
+        for (const key of Object.keys(proxyRes.headers)) {
+          this.resOrSocket.setHeader(key, proxyRes.headers[key])
+        }
+
+        if (this.onRes) {
+          this.onRes(this.req, this.resOrSocket)
+        }
+
+        this.resOrSocket.writeHead(this.resOrSocket.statusCode)
+        proxyRes.on('end', this._addTrailers)
+        proxyRes
+          .on('error', this.onProxyError)
+          .pipe(this.resOrSocket)
+      }
+    } catch (err) {
+      this.onProxyError(err)
+    }
+  }
+
+  _release () {
+    this.req.removeListener('close', this._release)
+
+    this.req = null
+    this.resOrSocket = null
+    this.onRes = null
+    this.onProxyError = null
+    this.proxyRes = null
+    ProxyResponseHandler.pool.push(this)
+  }
+
+  static create (req, resOrSocket, onRes, onProxyError) {
+    const handler = ProxyResponseHandler.pool.pop() || new ProxyResponseHandler()
+    handler.req = req
+    handler.resOrSocket = resOrSocket
+    handler.onRes = onRes
+    handler.onProxyError = onProxyError
+    handler.proxyRes = null
+    handler.req.on('close', handler._release)
+    return handler._handle
+  }
+
+  static release (obj) {
+    ProxyResponseHandler.pool.push(obj)
+  }
+}
+ProxyResponseHandler.pool = []
+
+class ProxyUpgradeHandler {
+  constructor () {
+    this.req = null
+    this.resOrSocket = null
+    this.onProxyError = null
+
+    this._handle = this._handle.bind(this)
+    this._release = this._release.bind(this)
+  }
+
+  _handle (proxyRes, proxySocket, proxyHead) {
+    try {
+      setupSocket(proxySocket)
+
+      if (proxyHead && proxyHead.length) {
+        proxySocket.unshift(proxyHead)
+      }
+
+      let head = 'HTTP/1.1 101 Switching Protocols'
+
+      for (const key of Object.keys(proxyRes.headers)) {
+        const value = proxyRes.headers[key]
+
+        if (!Array.isArray(value)) {
+          head += '\r\n' + key + ': ' + value
+        } else {
+          for (let i = 0; i < value.length; i++) {
+            head += '\r\n' + key + ': ' + value[i]
+          }
+        }
+      }
+
+      head += '\r\n\r\n'
+
+      this.resOrSocket.write(head)
+
+      proxyRes.on('error', this.onProxyError)
+
+      proxySocket
+        .on('error', this.onProxyError)
+        .pipe(this.resOrSocket)
+        .pipe(proxySocket)
+    } catch (err) {
+      this.onProxyError(err)
+    }
+  }
+
+  _release () {
+    this.req.removeListener('close', this._release)
+
+    this.req = null
+    this.resOrSocket = null
+    this.onProxyError = null
+    ProxyUpgradeHandler.pool.push(this)
+  }
+
+  static create (req, resOrSocket, onProxyError) {
+    const handler = ProxyUpgradeHandler.pool.pop() || new ProxyUpgradeHandler()
+    handler.req = req
+    handler.resOrSocket = resOrSocket
+    handler.onProxyError = onProxyError
+    handler.req.on('close', handler._release)
+    return handler._handle
+  }
+
+  static release (obj) {
+    ProxyUpgradeHandler.pool.push(obj)
+  }
+}
+ProxyUpgradeHandler.pool = []
