@@ -57,7 +57,7 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000,
-    onRes: (req, resHeaders, res) => helmet(req, res, () => {})
+    onRes: (req, res) => helmet(req, res, () => {})
   }, err => console.error(err, 'proxy error'))
 })
 ```
@@ -69,10 +69,10 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000,
-    onReq: (req, reqHeaders) => {
-      reqHeaders['x-forwarded-for'] = req.socket.remoteAddress
-      reqHeaders['x-forwarded-proto'] = req.socket.encrypted ? 'https' : 'http'
-      reqHeaders['x-forwarded-host'] = req.headers['host']
+    onReq: (req, headers) => {
+      headers['x-forwarded-for'] = req.socket.remoteAddress
+      headers['x-forwarded-proto'] = req.socket.encrypted ? 'https' : 'http'
+      headers['x-forwarded-host'] = req.headers['host']
     }
   }, err => console.error(err, 'proxy error'))
 })
@@ -102,8 +102,12 @@ server.on('request', (req, res) => {
   - `timeout`: incoming request timeout
   - `proxyTimeout`: proxy request timeout
   - `proxyName`: proxy name used for **Via** header
-  - `onReq(req, reqHeaders)`: called before proxy request
-  - `onRes(req, resHeaders, res)`: called before proxy response
+  - `onReq(req, headers)`: called before proxy request
+    - `req`: `http.IncomingMessage` or `http2.Http2ServerRequest`
+    - `headers`: `http.ClientRequest.headers`
+  - `onRes(req, res)`: called before proxy response
+    - `req`: `http.IncomingMessage` or `http2.Http2ServerRequest`
+    - `res`: `http.ServerResponse` or `http2.Http2ServerResponse`
 
 ### License
 
