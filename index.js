@@ -181,7 +181,7 @@ function proxy (req, resOrSocket, options, onRes, onError) {
             resOrSocket.end()
           }
         } else {
-          const headers = setupHeaders({ ...proxyRes.headers })
+          const headers = setupHeaders(proxyRes.headers)
 
           if (onRes) {
             onRes(req, headers)
@@ -243,7 +243,7 @@ function proxy (req, resOrSocket, options, onRes, onError) {
 }
 
 function getRequestHeaders (req) {
-  const headers = setupHeaders({ ...req.headers })
+  const headers = setupHeaders(Object.assign({}, req.headers))
 
   // Remove pseudo headers
   delete headers[HTTP2_HEADER_AUTHORITY]
