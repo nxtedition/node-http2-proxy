@@ -46,7 +46,7 @@ function impl (req, resOrSocket, headOrNil, {
   onReq,
   onRes
 }, callback) {
-  const onFinished = OnFinished.create(req)
+  const onFinished = OnFinished.create(req, resOrSocket)
   const errorHandler = ErrorHandler.create(req, resOrSocket, callback, onFinished)
 
   resOrSocket.on('error', errorHandler)
@@ -490,18 +490,16 @@ class OnFinished {
     this.req = null
     this.handlers = []
     this.handle = this.handle.bind(this)
+    this.init = this.init.bind(this)
   }
 
   handle () {
-    if (this.req.stream) {
-      this.req.stream.removeListener('streamClosed', this.handle)
-      this.req.stream.removeListener('error', this.handle)
-    } else {
-      this.req.removeListener('close', this.handle)
-      this.req.removeListener('error', this.handle)
-    }
+    this.req.removeListener('close', this.handle)
+    this.req.removeListener('error', this.handle)
 
     this.req = null
+    this.res = null
+
     for (const handler of this.handlers) {
       handler.release()
     }
@@ -514,17 +512,15 @@ class OnFinished {
     this.handlers.push(handler)
   }
 
+  init () {
+    this.req.on('close', this.handle)
+    this.req.on('error', this.handle)
+  }
+
   static create (req, res) {
     const onFinished = OnFinished.pool.pop() || new OnFinished()
     onFinished.req = req
-    onFinished.handlers.length = 0
-    if (req.stream) {
-      req.stream.on('streamClosed', onFinished.handle)
-      req.stream.on('error', onFinished.handle)
-    } else {
-      req.on('close', onFinished.handle)
-      req.on('error', onFinished.handle)
-    }
+    process.nextTick(onFinished.init)
     return onFinished
   }
 }
