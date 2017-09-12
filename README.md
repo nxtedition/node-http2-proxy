@@ -57,17 +57,7 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000,
-    onRes: (req, resHeaders) => helmet({
-      setHeader (key, val) {
-        resHeaders[key.trim().toLowerCase()] = val
-      },
-      getHeader (key) {
-        return resHeaders[key.trim().toLowerCase()]
-      },
-      removeHeader (key) {
-        delete resHeaders[key.trim().toLowerCase()]
-      }
-    }, () => {})
+    onRes: (req, resHeaders, res) => helmet(req, res, () => {})
   }, err => console.error(err, 'proxy error'))
 })
 ```
@@ -113,7 +103,7 @@ server.on('request', (req, res) => {
   - `proxyTimeout`: proxy request timeout
   - `proxyName`: proxy name used for **Via** header
   - `onReq(req, reqHeaders)`: called before proxy request
-  - `onRes(req, resHeaders)`: called before proxy response
+  - `onRes(req, resHeaders, res)`: called before proxy response
 
 ### License
 
