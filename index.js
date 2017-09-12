@@ -1,7 +1,6 @@
 const createError = require('http-errors')
 const http2 = require('http2')
 const http = require('http')
-const pump = require('pump')
 const net = require('net')
 
 const {
@@ -193,7 +192,10 @@ function proxy (req, resOrSocket, options, onRes, onError) {
           proxyRes.on('end', () => {
             resOrSocket.addTrailers(proxyRes.trailers)
           })
-          pump(proxyRes, resOrSocket, err => err && callback(err))
+          proxyRes
+            .on('error', callback)
+            .pipe(resOrSocket)
+            .on('error', callback)
         }
       } catch (err) {
         callback(err)
@@ -229,7 +231,11 @@ function proxy (req, resOrSocket, options, onRes, onError) {
             .join('\r\n') + '\r\n\r\n'
         )
 
-        pump(proxySocket, resOrSocket, proxySocket, err => err && callback(err))
+        proxySocket
+          .on('error', callback)
+          .pipe(resOrSocket)
+          .on('error', callback)
+          .pipe(proxySocket)
       } catch (err) {
         callback(err)
       }
