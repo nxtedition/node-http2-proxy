@@ -47,7 +47,7 @@ function impl (req, resOrSocket, headOrNil, {
 }, onProxyError) {
   let hasError = false
 
-  function onError (err, statusCode = (err && err.statusCode) || 500) {
+  function onError (err, statusCode = err.statusCode || 500) {
     if (hasError) {
       return
     }
