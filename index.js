@@ -45,6 +45,10 @@ function impl (req, resOrSocket, headOrNil, {
   onReq,
   onRes
 }, onProxyError) {
+  // NOTE http2.Http2ServerRequest doesn't forward stream errors.
+  (req.stream || req).on('error', onError)
+  resOrSocket.on('error', onError)
+
   function onError (err, statusCode = (err && err.statusCode) || 500) {
     if (resOrSocket.closed === true ||
         resOrSocket.headersSent !== false ||
@@ -122,10 +126,6 @@ function impl (req, resOrSocket, headOrNil, {
     if (onReq) {
       onReq(req, options)
     }
-
-    // NOTE http2.Http2ServerRequest doesn't forward stream errors.
-    (req.stream || req).on('error', onError)
-    resOrSocket.on('error', onError)
 
     return proxy(req, resOrSocket, options, onRes, onError)
   } catch (err) {
