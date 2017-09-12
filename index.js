@@ -45,7 +45,8 @@ function impl (req, resOrSocket, headOrNil, {
   onReq,
   onRes
 }, onProxyError) {
-  // NOTE http2.Http2ServerRequest doesn't forward stream errors.
+  // XXX http2.Http2ServerRequest doesn't forward stream errors.
+  // (https://github.com/nodejs/node/issues/15359)
   (req.stream || req).on('error', onError)
   resOrSocket.on('error', onError)
 
@@ -168,9 +169,10 @@ function proxy (req, resOrSocket, options, onRes, onError) {
         callback(err)
       }
     })
-    // NOTE http.ClientRequest doesn't emit 'aborted'. Instead it emits
+    // XXX http.ClientRequest doesn't emit 'aborted'. Instead it emits
     // a "socket hang up" error.
     // .on('aborted', () => callback(new createError.BadGateway('socket hang up')))
+    // (https://github.com/nodejs/node/pull/15270)
     .on('timeout', () => callback(createError('gateway timeout', null, 504)))
     .on('response', proxyRes => {
       try {
@@ -239,6 +241,7 @@ function proxy (req, resOrSocket, options, onRes, onError) {
         )
 
         // XXX Do we need to handle `proxyRes.on('error', ...)`?
+        // (https://github.com/nodejs/node/issues/15360)
 
         proxySocket
           .on('error', callback)
