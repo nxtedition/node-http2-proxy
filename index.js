@@ -270,7 +270,6 @@ ErrorHandler.pool = []
 class ProxyErrorHandler {
   constructor () {
     this.hasError = false
-    this.req = null
     this.proxyReq = null
     this.errorHandler = null
     this.hpeExpr = /HPE_INVALID/
@@ -321,7 +320,6 @@ class ProxyErrorHandler {
     this.abort()
 
     this.hasError = false
-    this.req = null
     this.proxyReq = null
     this.errorHandler = null
 
@@ -330,7 +328,6 @@ class ProxyErrorHandler {
 
   static create (req, proxyReq, errorHandler, onFinished) {
     const handler = ProxyErrorHandler.pool.pop() || new ProxyErrorHandler()
-    handler.req = req
     handler.proxyReq = proxyReq
     handler.errorHandler = errorHandler
     onFinished.register(handler)
@@ -419,7 +416,6 @@ ProxyResponseHandler.pool = []
 
 class ProxyUpgradeHandler {
   constructor () {
-    this.req = null
     this.socket = null
     this.proxyErrorHandler = null
     this.proxyRes = null
@@ -471,7 +467,6 @@ class ProxyUpgradeHandler {
       this.proxySocket.destroy()
     }
 
-    this.req = null
     this.socket = null
     this.proxyErrorHandler = null
     this.proxyRes = null
@@ -482,7 +477,6 @@ class ProxyUpgradeHandler {
 
   static create (req, socket, proxyErrorHandler, onFinished) {
     const handler = ProxyUpgradeHandler.pool.pop() || new ProxyUpgradeHandler()
-    handler.req = req
     handler.socket = socket
     handler.proxyErrorHandler = proxyErrorHandler
     onFinished.register(handler)
