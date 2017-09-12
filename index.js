@@ -71,8 +71,6 @@ function impl (req, resOrSocket, headOrNil, {
     }
   }
 
-  // XXX http2.Http2ServerRequest doesn't forward stream errors.
-  // (https://github.com/nodejs/node/issues/15359)
   (req.stream || req).on('error', onError)
   resOrSocket.on('error', onError)
 
@@ -246,8 +244,6 @@ function proxy (req, resOrSocket, options, onRes, onError) {
             .join('\r\n') + '\r\n\r\n'
         )
 
-        // XXX Does this overlap socket errors, i.e. duplicate emits?
-        // (https://github.com/nodejs/node/issues/15360)
         proxyRes.on('error', callback)
 
         proxySocket
