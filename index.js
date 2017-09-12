@@ -269,6 +269,7 @@ class ProxyErrorHandler {
     this.errorHandler = null
     this.hpeExpr = /HPE_INVALID/
     this.release = this.release.bind(this)
+    this.releaseProxy = this.releaseProxy.bind(this)
     this.handle = this.handle.bind(this)
     this.handle.gatewayTimeout = this.gatewayTimeout.bind(this)
     this.handle.socketHangup = this.socketHangup.bind(this)
@@ -313,11 +314,12 @@ class ProxyErrorHandler {
 
   release () {
     this.abort()
+  }
 
+  releaseProxy () {
     this.hasError = false
-    this.proxyReq = null
     this.errorHandler = null
-
+    this.proxyReq = null
     ProxyErrorHandler.pool.push(this)
   }
 
@@ -325,6 +327,7 @@ class ProxyErrorHandler {
     const handler = ProxyErrorHandler.pool.pop() || new ProxyErrorHandler()
     handler.proxyReq = proxyReq
     handler.errorHandler = errorHandler
+    proxyReq.on('close', handler.releaseProxy)
     finishedHandler.register(handler)
     return handler.handle
   }
