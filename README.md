@@ -82,32 +82,32 @@ server.on('request', (req, res) => {
 
 #### web (req, res, options, onProxyError)
 
-- `req`: `http.IncomingMessage` or `http2.Http2ServerRequest`
-- `res`: `http.ServerResponse` or `http2.Http2ServerResponse`
+- `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
+- `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse)
 - `options`: see [Options](#options)
 - `onProxyError(err)`: called on error
 
 #### ws (req, socket, head, options, onProxyError)
 
-- `req`: `http.IncomingMessage`
-- `socket`: `net.Socket`
-- `head`: `Buffer`
+- `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage)
+- `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket)
+- `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer)
 - `options`: see [Options](#options)
 - `onProxyError(err)`: called on error
 
 ### Options
 
-  - `hostname`: target hostname
-  - `port`: target port
-  - `timeout`: incoming request timeout
-  - `proxyTimeout`: proxy request timeout
+  - `hostname`: proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target hostname
+  - `port`: proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target port
+  - `proxyTimeout`: proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout
   - `proxyName`: proxy name used for **Via** header
+  - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) timeout
   - `onReq(req, options)`: called before proxy request
-    - `req`: `http.IncomingMessage` or `http2.Http2ServerRequest`
-    - `options`: options passed to `http.ClientRequest`
+    - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
+    - `options`: options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback)
   - `onRes(req, res)`: called before proxy response
-    - `req`: `http.IncomingMessage` or `http2.Http2ServerRequest`
-    - `res`: `http.ServerResponse` or `http2.Http2ServerResponse`
+    - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
+    - `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse)
 
 ### License
 
