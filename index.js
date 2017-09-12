@@ -164,7 +164,6 @@ function proxy (req, resOrSocket, options, onRes, onError) {
           callback(err)
         }
       } else {
-        err.statusCode = 500
         callback(err)
       }
     })
