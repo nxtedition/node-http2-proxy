@@ -512,10 +512,11 @@ class OnFinished {
   _handle () {
     if (this.req.stream) {
       this.req.stream.removeListener('streamClosed', this._handle)
+      this.req.stream.removeListener('error', this._handle)
     } else {
       this.req.removeListener('close', this._handle)
+      this.req.removeListener('error', this._handle)
     }
-    this.req.removeListener('error', this._handle)
 
     this.callback = null
 
@@ -528,10 +529,11 @@ class OnFinished {
     onFinished.callback = callback
     if (req.stream) {
       req.stream.on('streamClosed', onFinished._handle)
+      req.stream.on('error', onFinished._handle)
     } else {
       req.on('close', onFinished._handle)
+      req.on('error', onFinished._handle)
     }
-    req.on('error', onFinished._handle)
   }
 }
 OnFinished.pool = []
