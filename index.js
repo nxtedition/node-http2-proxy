@@ -367,30 +367,34 @@ class ProxyResponseHandler {
     proxyRes.on('aborted', this.proxyErrorHandler.socketHangup)
 
     if (this.resOrSocket instanceof net.Socket) {
+      const socket = this.resOrSocket
+
       if (this.onRes) {
-        this.onRes(this.req, this.resOrSocket)
+        this.onRes(this.req, socket)
       }
 
       if (!proxyRes.upgrade) {
-        this.resOrSocket.end()
+        socket.end()
       }
     } else {
+      const res = this.resOrSocket
+
       setupHeaders(proxyRes.headers)
 
-      this.resOrSocket.statusCode = proxyRes.statusCode
+      res.statusCode = proxyRes.statusCode
       for (const key of Object.keys(proxyRes.headers)) {
-        this.resOrSocket.setHeader(key, proxyRes.headers[key])
+        res.setHeader(key, proxyRes.headers[key])
       }
 
       if (this.onRes) {
-        this.onRes(this.req, this.resOrSocket)
+        this.onRes(this.req, res)
       }
 
-      this.resOrSocket.writeHead(this.resOrSocket.statusCode)
+      res.writeHead(res.statusCode)
       proxyRes
         .on('end', this._addTrailers)
         .on('error', this.proxyErrorHandler)
-        .pipe(this.resOrSocket)
+        .pipe(res)
     }
   }
 
@@ -424,7 +428,7 @@ ProxyResponseHandler.pool = []
 class ProxyUpgradeHandler {
   constructor () {
     this.req = null
-    this.resOrSocket = null
+    this.socket = null
     this.proxyErrorHandler = null
     this.proxyRes = null
     this.proxySocket = null
@@ -459,13 +463,13 @@ class ProxyUpgradeHandler {
 
     head += '\r\n\r\n'
 
-    this.resOrSocket.write(head)
+    this.socket.write(head)
 
     proxyRes.on('error', this.proxyErrorHandler)
 
     proxySocket
       .on('error', this.proxyErrorHandler)
-      .pipe(this.resOrSocket)
+      .pipe(this.socket)
       .pipe(proxySocket)
   }
 
@@ -478,7 +482,7 @@ class ProxyUpgradeHandler {
     }
 
     this.req = null
-    this.resOrSocket = null
+    this.socket = null
     this.proxyErrorHandler = null
     this.proxyRes = null
     this.proxySocket = null
@@ -486,10 +490,10 @@ class ProxyUpgradeHandler {
     ProxyUpgradeHandler.pool.push(this)
   }
 
-  static create (req, resOrSocket, proxyErrorHandler) {
+  static create (req, socket, proxyErrorHandler) {
     const handler = ProxyUpgradeHandler.pool.pop() || new ProxyUpgradeHandler()
     handler.req = req
-    handler.resOrSocket = resOrSocket
+    handler.socket = socket
     handler.proxyErrorHandler = proxyErrorHandler
     handler.req.on('close', handler._release)
     return handler._handle
