@@ -438,12 +438,17 @@ class ProxyUpgradeHandler {
     this.req = null
     this.resOrSocket = null
     this.onProxyError = null
+    this.proxyRes = null
+    this.proxySocket = null
 
     this._handle = this._handle.bind(this)
     this._release = this._release.bind(this)
   }
 
   _handle (proxyRes, proxySocket, proxyHead) {
+    this.proxyRes = proxyRes
+    this.proxySocket = proxySocket
+
     try {
       setupSocket(proxySocket)
 
@@ -482,10 +487,14 @@ class ProxyUpgradeHandler {
 
   _release () {
     this.req.removeListener('close', this._release)
+    this.proxyRes.destroy()
+    this.proxySocket.destroy()
 
     this.req = null
     this.resOrSocket = null
     this.onProxyError = null
+    this.proxyRes = null
+    this.proxySocket = null
     ProxyUpgradeHandler.pool.push(this)
   }
 
