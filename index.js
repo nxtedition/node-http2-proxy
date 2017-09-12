@@ -45,7 +45,15 @@ function impl (req, resOrSocket, headOrNil, {
   onReq,
   onRes
 }, onProxyError) {
+  let hasError = false
+
   function onError (err, statusCode = (err && err.statusCode) || 500) {
+    if (hasError) {
+      return
+    }
+
+    hasError = true
+
     if (resOrSocket.closed === true ||
         resOrSocket.headersSent !== false ||
         !resOrSocket.writeHead
