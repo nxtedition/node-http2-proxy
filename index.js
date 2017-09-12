@@ -265,7 +265,7 @@ class ErrorHandler {
     handler.req = req
     handler.resOrSocket = resOrSocket
     handler.callback = callback
-    handler.req.on('close', handler._release)
+    OnFinished.create(req, handler._release)
     return handler._handle
   }
 }
@@ -338,7 +338,7 @@ class ProxyErrorHandler {
     handler.req = req
     handler.proxyReq = proxyReq
     handler.errorHandler = errorHandler
-    handler.req.on('close', handler._release)
+    OnFinished.create(req, handler._release)
     return handler._handle
   }
 }
@@ -419,7 +419,7 @@ class ProxyResponseHandler {
     handler.onRes = onRes
     handler.proxyErrorHandler = proxyErrorHandler
     handler.proxyRes = null
-    handler.req.on('close', handler._release)
+    OnFinished.create(req, handler._release)
     return handler._handle
   }
 }
@@ -495,8 +495,43 @@ class ProxyUpgradeHandler {
     handler.req = req
     handler.socket = socket
     handler.proxyErrorHandler = proxyErrorHandler
-    handler.req.on('close', handler._release)
+    OnFinished.create(req, handler._release)
     return handler._handle
   }
 }
 ProxyUpgradeHandler.pool = []
+
+class OnFinished {
+  constructor () {
+    this.req = null
+    this.callback = null
+
+    this._handle = this._handle.bind(this)
+  }
+
+  _handle () {
+    if (this.req.stream) {
+      this.req.stream.removeListener('streamClosed', this._handle)
+    } else {
+      this.req.removeListener('close', this._handle)
+    }
+    this.req.removeListener('error', this._handle)
+
+    this.callback = null
+
+    OnFinished.pool.push(this)
+  }
+
+  static create (req, callback) {
+    const onFinished = OnFinished.pool.pop() || new OnFinished()
+    onFinished.req = req
+    onFinished.callback = callback
+    if (req.stream) {
+      req.stream.on('streamClosed', onFinished._handle)
+    } else {
+      req.on('close', onFinished._handle)
+    }
+    req.on('error', onFinished._handle)
+  }
+}
+OnFinished.pool = []
