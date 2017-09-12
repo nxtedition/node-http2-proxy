@@ -411,7 +411,6 @@ class ProxyResponseHandler {
     handler.resOrSocket = resOrSocket
     handler.onRes = onRes
     handler.proxyErrorHandler = proxyErrorHandler
-    handler.proxyRes = null
     onFinished.register(handler)
     return handler.handle
   }
