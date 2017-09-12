@@ -218,10 +218,10 @@ class ErrorHandler {
     this.callback = null
     this.release = this.release.bind(this)
     this.handle = this.handle.bind(this)
-    this.handle.requestTimeout = this._requestTimeout.bind(this)
+    this.handle.requestTimeout = this.requestTimeout.bind(this)
   }
 
-  _requestTimeout () {
+  requestTimeout () {
     this.handle(createError('request timeout', null, 408))
   }
 
@@ -302,7 +302,7 @@ class ProxyErrorHandler {
       }
     }
 
-    this._abort()
+    this.abort()
     this.errorHandler(err)
   }
 
@@ -314,14 +314,14 @@ class ProxyErrorHandler {
     this.handle(createError('socket hang up', 'ECONNRESET', 502))
   }
 
-  _abort () {
+  abort () {
     if (!this.proxyReq.aborted) {
       this.proxyReq.abort()
     }
   }
 
   release () {
-    this._abort()
+    this.abort()
 
     this.hasError = false
     this.req = null
