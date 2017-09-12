@@ -238,6 +238,8 @@ function proxy (req, resOrSocket, options, onRes, onError) {
             .join('\r\n') + '\r\n\r\n'
         )
 
+        // XXX Do we need to handle `proxyRes.on('error', ...)`?
+
         proxySocket
           .on('error', callback)
           .pipe(resOrSocket)
