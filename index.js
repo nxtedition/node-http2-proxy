@@ -125,6 +125,7 @@ function impl (req, resOrSocket, headOrNil, {
 
     // NOTE http2.Http2ServerRequest doesn't forward stream errors.
     (req.stream || req).on('error', onError)
+    resOrSocket.on('error', onError)
 
     return proxy(req, resOrSocket, options, onRes, onError)
   } catch (err) {
@@ -202,7 +203,6 @@ function proxy (req, resOrSocket, options, onRes, onError) {
           proxyRes
             .on('error', callback)
             .pipe(resOrSocket)
-            .on('error', callback)
         }
       } catch (err) {
         callback(err)
@@ -241,7 +241,6 @@ function proxy (req, resOrSocket, options, onRes, onError) {
         proxySocket
           .on('error', callback)
           .pipe(resOrSocket)
-          .on('error', callback)
           .pipe(proxySocket)
       } catch (err) {
         callback(err)
