@@ -219,6 +219,7 @@ class ErrorHandler {
     this.resOrSocket = null
     this.callback = null
 
+    this._release = this._release.bind(this)
     this._handle = this._handle.bind(this)
     this._handle.requestTimeout = this._requestTimeout.bind(this)
   }
@@ -246,28 +247,27 @@ class ErrorHandler {
 
     if (this.callback) {
       this.callback(err, this.req, this.resOrSocket)
-      ErrorHandler.release(this)
     } else {
-      ErrorHandler.release(this)
       throw err
     }
   }
 
-  static create (req, resOrSocket, callback) {
-    const errorHandler = ErrorHandler.pool.pop() || new ErrorHandler()
-    errorHandler.hasError = false
-    errorHandler.req = req
-    errorHandler.resOrSocket = resOrSocket
-    errorHandler.callback = callback
-    return errorHandler._handle
+  _release () {
+    this.hasError = false
+    this.req = null
+    this.resOrSocket = null
+    this.callback = null
+    ErrorHandler.pool.push(this)
   }
 
-  static release (obj) {
-    obj.hasError = false
-    obj.req = null
-    obj.resOrSocket = null
-    obj.callback = null
-    ErrorHandler.pool.push(obj)
+  static create (req, resOrSocket, callback) {
+    const handler = ErrorHandler.pool.pop() || new ErrorHandler()
+    handler.hasError = false
+    handler.req = req
+    handler.resOrSocket = resOrSocket
+    handler.callback = callback
+    handler.req.on('close', handler._release)
+    return handler._handle
   }
 }
 ErrorHandler.pool = []
@@ -279,16 +279,10 @@ class ProxyErrorHandler {
     this.proxyReq = null
     this.onError = null
 
-    this._handle = this._handle.bind(this)
     this._release = this._release.bind(this)
+    this._handle = this._handle.bind(this)
     this._handle.gatewayTimeout = this._gatewayTimeout.bind(this)
     this._handle.socketHangup = this._socketHangup.bind(this)
-  }
-
-  _abort () {
-    if (!this.proxyReq.aborted) {
-      this.proxyReq.abort()
-    }
   }
 
   _handle (err) {
@@ -322,12 +316,14 @@ class ProxyErrorHandler {
     this._handle(createError('socket hang up', 'ECONNRESET', 502))
   }
 
-  _release () {
-    this.req.removeListener('close', this._release)
-
-    if (this.hasError) {
-      this._abort()
+  _abort () {
+    if (!this.proxyReq.aborted) {
+      this.proxyReq.abort()
     }
+  }
+
+  _release () {
+    this._abort()
 
     this.hasError = null
     this.req = null
@@ -406,8 +402,6 @@ class ProxyResponseHandler {
   }
 
   _release () {
-    this.req.removeListener('close', this._release)
-
     this.req = null
     this.resOrSocket = null
     this.onRes = null
@@ -426,10 +420,6 @@ class ProxyResponseHandler {
     handler.req.on('close', handler._release)
     return handler._handle
   }
-
-  static release (obj) {
-    ProxyResponseHandler.pool.push(obj)
-  }
 }
 ProxyResponseHandler.pool = []
 
@@ -441,8 +431,8 @@ class ProxyUpgradeHandler {
     this.proxyRes = null
     this.proxySocket = null
 
-    this._handle = this._handle.bind(this)
     this._release = this._release.bind(this)
+    this._handle = this._handle.bind(this)
   }
 
   _handle (proxyRes, proxySocket, proxyHead) {
@@ -486,7 +476,6 @@ class ProxyUpgradeHandler {
   }
 
   _release () {
-    this.req.removeListener('close', this._release)
     this.proxyRes.destroy()
     this.proxySocket.destroy()
 
@@ -505,10 +494,6 @@ class ProxyUpgradeHandler {
     handler.onProxyError = onProxyError
     handler.req.on('close', handler._release)
     return handler._handle
-  }
-
-  static release (obj) {
-    ProxyUpgradeHandler.pool.push(obj)
   }
 }
 ProxyUpgradeHandler.pool = []
