@@ -143,13 +143,13 @@ function impl (req, resOrSocket, headOrNil, {
 function proxy (req, resOrSocket, options, onRes, onError) {
   const proxyReq = http.request(options)
 
-  let hasError = false
-
   const abort = () => {
     if (!proxyReq.aborted) {
       proxyReq.abort()
     }
   }
+
+  let hasError = false
 
   const onProxyError = err => {
     if (hasError) {
