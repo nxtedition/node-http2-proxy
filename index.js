@@ -273,7 +273,7 @@ ErrorHandler.pool = []
 
 class ProxyErrorHandler {
   constructor () {
-    this.hasError = null
+    this.hasError = false
     this.req = null
     this.proxyReq = null
     this.errorHandler = null
@@ -324,7 +324,7 @@ class ProxyErrorHandler {
   _release () {
     this._abort()
 
-    this.hasError = null
+    this.hasError = false
     this.req = null
     this.proxyReq = null
     this.errorHandler = null
