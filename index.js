@@ -270,23 +270,23 @@ function getRequestHeaders (req) {
   const fwd = {
     by: req.headers[HTTP2_HEADER_AUTHORITY] || req.headers[HTTP2_HEADER_HOST],
     proto: req.socket.encrypted ? 'https' : 'http',
-    for: [ req.socket.remoteAddress ]
+    for: `for=${req.socket.remoteAddress}`
   }
 
   if (req.headers[HTTP2_HEADER_FORWARDED]) {
-    const expr = /for=\s*([^\s]+)/i
+    const expr = /for=\s*([^\s]+)/ig
     while (true) {
       const m = expr.exec(req.headers[HTTP2_HEADER_FORWARDED])
       if (!m) {
         break
       }
-      fwd.for.push(m)
+      fwd.for += `; ${m[1]}`
     }
   }
 
   headers[HTTP2_HEADER_FORWARDED] = [
     `by=${fwd.by}`,
-    fwd.for.map(address => `for=${address}`).join('; '),
+    fwd.for,
     fwd.host && `host=${fwd.host}`,
     `proto=${fwd.proto}`
   ].filter(x => x).join('; ')
