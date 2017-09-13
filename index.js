@@ -127,45 +127,29 @@ function impl (req, resOrSocket, headOrNil, {
     onReq(req, options)
   }
 
-  return proxy(req, resOrSocket, options, onRes, onError)
-}
-
-function proxy (req, resOrSocket, options, onRes, onError) {
   const proxyReq = http.request(options)
 
-  const abort = () => {
-    if (!proxyReq.aborted) {
-      proxyReq.abort()
-    }
-  }
-
-  let hasError = false
-
   const onProxyError = err => {
-    if (hasError) {
+    if (proxyReq.aborted) {
       return
     }
-    hasError = true
+    proxyReq.abort()
 
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
       err.statusCode = 503
     } else if (/HPE_INVALID/.test(err.code)) {
       err.statusCode = 502
     } else if (err.code === 'ECONNRESET') {
-      if (!proxyReq.aborted) {
-        err.statusCode = 502
-      } else {
-        return
-      }
+      err.statusCode = 502
+    } else {
+      err.statusCode = 500
     }
 
-    req.removeListener('close', abort)
-    abort()
     onError(err)
   }
 
   req
-    .on('close', abort)
+    .on('close', () => proxyReq.abort())
     .pipe(proxyReq)
     .on('error', onProxyError)
     // NOTE http.ClientRequest emits "socket hang up" error when aborted
