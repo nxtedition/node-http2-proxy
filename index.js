@@ -274,9 +274,9 @@ function setupSocket (socket) {
 }
 
 function setupHeaders (headers) {
-  const connection = headers[HTTP2_HEADER_CONNECTION]
+  const connection = sanitize(headers[HTTP2_HEADER_CONNECTION])
 
-  if (connection && connection !== 'close') {
+  if (connection && connection !== 'close' && connection !== 'keep-alive') {
     for (const name of connection.split(',')) {
       delete headers[sanitize(name)]
     }
@@ -295,7 +295,7 @@ function setupHeaders (headers) {
 }
 
 function sanitize (name) {
-  return name.trim().toLowerCase()
+  return name ? name.trim().toLowerCase() : ''
 }
 
 function createError (msg, code, statusCode) {
