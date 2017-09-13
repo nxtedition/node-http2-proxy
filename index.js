@@ -69,7 +69,7 @@ function impl (req, resOrSocket, headOrNil, {
     }
   }
 
-  req.on('error', onError)
+  (req.stream || req).on('error', onError)
   resOrSocket.on('error', onError)
 
   if (resOrSocket instanceof net.Socket) {
