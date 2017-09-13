@@ -83,13 +83,12 @@ function impl (req, resOrSocket, headOrNil, {
     return onError(createError('http version not supported', null, 505))
   }
 
-  if (proxyName &&
-      req.headers[HTTP2_HEADER_VIA] &&
-      req.headers[HTTP2_HEADER_VIA]
-        .split(',')
-        .some(name => sanitize(name).endsWith(proxyName.toLowerCase()))
-  ) {
-    return onError(createError('loop detected', null, 508))
+  if (proxyName && req.headers[HTTP2_HEADER_VIA]) {
+    for (const name of req.headers[HTTP2_HEADER_VIA].split(',')) {
+      if (sanitize(name).endsWith(proxyName.toLowerCase())) {
+        return onError(createError('loop detected', null, 508))
+      }
+    }
   }
 
   if (timeout) {
