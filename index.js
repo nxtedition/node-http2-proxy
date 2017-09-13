@@ -48,6 +48,10 @@ function impl (req, resOrSocket, headOrNil, {
 
     hasError = true
 
+    if (!err.code) {
+      err.code = resOrSocket.code
+    }
+
     if (resOrSocket.closed === true ||
         resOrSocket.headersSent !== false ||
         !resOrSocket.writeHead
