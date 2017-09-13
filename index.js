@@ -21,119 +21,256 @@ const {
   HTTP2_HEADER_FORWARDED = 'forwarded'
 } = http2.constants
 
-module.exports = {
-  ws (req, socket, head, options, callback) {
-    impl(req, socket, head, options, callback)
-  },
-  web (req, res, options, callback) {
-    impl(req, res, null, options, callback)
+const POOL = []
+module.exports = class Proxy {
+  static ws (req, socket, head, options, callback) {
+    Proxy.proxy(req, socket, head, options, callback)
   }
-}
+  static web (req, res, options, callback) {
+    Proxy.proxy(req, res, null, options, callback)
+  }
+  static proxy (req, resOrSocket, headOrNil, options) {
+    const proxy = POOL.pop() || new Proxy()
+    proxy.run(req, resOrSocket, headOrNil, options)
+  }
 
-function impl (req, resOrSocket, headOrNil, {
-  hostname,
-  port,
-  timeout,
-  proxyTimeout,
-  proxyName,
-  onReq,
-  onRes
-}, callback) {
-  let hasError = false
+  constructor () {
+    this._onUpgrade = this._onUpgrade.bind(this)
+    this._onResponse = this._onResponse.bind(this)
+    this._onError = this._onError.bind(this)
+    this._onProxyError = this._onProxyError.bind(this)
+    this._onRequestClose = this._onRequestClose.bind(this)
+    this._onProxyClose = this._onProxyClose.bind(this)
+    this._onRequestTimeout = this._onRequestTimeout.bind(this)
+    this._onAborted = this._onAborted.bind(this)
+    this._onGatewayTimeout = this._onGatewayTimeout.bind(this)
 
-  function onError (err, statusCode = err.statusCode || 500) {
-    if (hasError) {
+    this.hasError = false
+    this.req = null
+    this.proxyReq = null
+    this.resOrSocket = null
+    this.onRes = null
+  }
+
+  run (req, resOrSocket, headOrNil, {
+    hostname,
+    port,
+    timeout,
+    proxyTimeout,
+    proxyName,
+    onReq,
+    onRes
+  }) {
+    this.req = req
+    this.resOrSocket = resOrSocket
+    this.onRes = onRes
+
+    req.on('error', this._onError)
+    resOrSocket.on('error', this._onError)
+
+    if (resOrSocket instanceof net.Socket) {
+      if (req.method !== 'GET') {
+        return this._onError(createError('method not allowed', null, 405))
+      }
+
+      if (!req.headers[HTTP2_HEADER_UPGRADE] ||
+          req.headers[HTTP2_HEADER_UPGRADE].toLowerCase() !== 'websocket') {
+        return this._onError(createError('bad request', null, 400))
+      }
+    }
+
+    if (req.httpVersion !== '1.1' && req.httpVersion !== '2.0') {
+      return this._onError(createError('http version not supported', null, 505))
+    }
+
+    if (proxyName && req.headers[HTTP2_HEADER_VIA]) {
+      for (const name of req.headers[HTTP2_HEADER_VIA].split(',')) {
+        if (sanitize(name).endsWith(proxyName.toLowerCase())) {
+          return this._onError(createError('loop detected', null, 508))
+        }
+      }
+    }
+
+    if (timeout) {
+      req.setTimeout(timeout, this._onRequestTimeout)
+    }
+
+    if (resOrSocket instanceof net.Socket) {
+      if (headOrNil && headOrNil.length) {
+        resOrSocket.unshift(headOrNil)
+      }
+
+      setupSocket(resOrSocket)
+    }
+
+    const headers = getRequestHeaders(req)
+
+    if (proxyName) {
+      if (headers[HTTP2_HEADER_VIA]) {
+        headers[HTTP2_HEADER_VIA] += `,${proxyName}`
+      } else {
+        headers[HTTP2_HEADER_VIA] = proxyName
+      }
+    }
+
+    const options = {
+      method: req.method,
+      hostname,
+      port,
+      path: req.url,
+      headers,
+      timeout: proxyTimeout
+    }
+
+    if (onReq) {
+      onReq(req, options)
+    }
+
+    this.proxyReq = http.request(options)
+
+    req
+      .on('close', this._onRequestClose)
+      .pipe(this.proxyReq)
+      .on('close', this._onProxyClose)
+      .on('error', this._onProxyError)
+      // NOTE http.ClientRequest emits "socket hang up" error when aborted
+      // before having received a response, i.e. there is no need to listen for
+      // proxyReq.on('aborted', ...).
+      .on('timeout', this._onGatewayTimeout)
+      .on('response', this._onResponse)
+      .on('upgrade', this._onUpgrade)
+  }
+
+  _release () {
+    this.hasError = false
+    this.req = null
+    this.proxyReq = null
+    this.resOrSocket = null
+    this.onRes = null
+    POOL.push(this)
+  }
+
+  _onRequestClose () {
+    if (this.proxyReq && !this.proxyReq.aborted) {
+      this.proxyReq.abort()
+    }
+    // this.req = null
+    // if (!this.req && !this.proxyReq) {
+    //   process.nextTick(this._release)
+    // }
+  }
+
+  _onProxyClose () {
+    // this.proxyReq = null
+    // if (!this.req && !this.proxyReq) {
+    //   this._release()
+    // }
+  }
+
+  _onRequestTimeout () {
+    this._onError(createError('request timeout', null, 408))
+  }
+
+  _onAborted () {
+    this._onProxyError(createError('socket hang up', 'ECONNRESET', 502))
+  }
+
+  _onGatewayTimeout () {
+    this._onProxyError(createError('gateway timeout', null, 504))
+  }
+
+  _onResponse (proxyRes) {
+    proxyRes.on('aborted', this._onAborted)
+
+    if (this.resOrSocket instanceof net.Socket) {
+      if (this.onRes) {
+        this.onRes(this.req, this.resOrSocket)
+      }
+
+      if (!proxyRes.upgrade) {
+        this.resOrSocket.end()
+      }
+    } else {
+      setupHeaders(proxyRes.headers)
+
+      this.resOrSocket.statusCode = proxyRes.statusCode
+      for (const key of Object.keys(proxyRes.headers)) {
+        this.resOrSocket.setHeader(key, proxyRes.headers[key])
+      }
+
+      if (this.onRes) {
+        this.onRes(this.req, this.resOrSocket)
+      }
+
+      this.resOrSocket.writeHead(this.resOrSocket.statusCode)
+      proxyRes
+        .on('end', () => this.resOrSocket.addTrailers(proxyRes.trailers))
+        .on('error', this._onProxyError)
+        .pipe(this.resOrSocket)
+    }
+  }
+
+  _onUpgrade (proxyRes, proxySocket, proxyHead) {
+    setupSocket(proxySocket)
+
+    if (proxyHead && proxyHead.length) {
+      proxySocket.unshift(proxyHead)
+    }
+
+    let head = 'HTTP/1.1 101 Switching Protocols'
+
+    for (const key of Object.keys(proxyRes.headers)) {
+      const value = proxyRes.headers[key]
+
+      if (!Array.isArray(value)) {
+        head += '\r\n' + key + ': ' + value
+      } else {
+        for (let i = 0; i < value.length; i++) {
+          head += '\r\n' + key + ': ' + value[i]
+        }
+      }
+    }
+
+    head += '\r\n\r\n'
+
+    this.resOrSocket.write(head)
+
+    proxySocket
+      .on('error', this._onProxyError)
+      .pipe(this.resOrSocket)
+      .pipe(proxySocket)
+  }
+
+  _onError (err, statusCode = err.statusCode || 500) {
+    if (this.hasError) {
       return
     }
 
-    hasError = true
+    this.hasError = true
 
-    if (resOrSocket.closed === true ||
-        resOrSocket.headersSent !== false ||
-        !resOrSocket.writeHead
+    if (this.resOrSocket.closed === true ||
+        this.resOrSocket.headersSent !== false ||
+        !this.resOrSocket.writeHead
     ) {
-      resOrSocket.destroy()
+      this.resOrSocket.destroy()
     } else {
-      resOrSocket.writeHead(statusCode)
-      resOrSocket.end()
+      this.resOrSocket.writeHead(statusCode)
+      this.resOrSocket.end()
     }
 
-    if (callback) {
-      callback(err, req, resOrSocket)
+    if (this.callback) {
+      this.callback(err, this.req, this.resOrSocket)
     } else {
       throw err
     }
   }
 
-  req.on('error', onError)
-  resOrSocket.on('error', onError)
-
-  if (resOrSocket instanceof net.Socket) {
-    if (req.method !== 'GET') {
-      return onError(createError('method not allowed', null, 405))
-    }
-
-    if (!req.headers[HTTP2_HEADER_UPGRADE] ||
-        req.headers[HTTP2_HEADER_UPGRADE].toLowerCase() !== 'websocket') {
-      return onError(createError('bad request', null, 400))
-    }
-  }
-
-  if (req.httpVersion !== '1.1' && req.httpVersion !== '2.0') {
-    return onError(createError('http version not supported', null, 505))
-  }
-
-  if (proxyName &&
-      req.headers[HTTP2_HEADER_VIA] &&
-      req.headers[HTTP2_HEADER_VIA]
-        .split(',')
-        .some(name => sanitize(name).endsWith(proxyName.toLowerCase()))
-  ) {
-    return onError(createError('loop detected', null, 508))
-  }
-
-  if (timeout) {
-    req.setTimeout(timeout, () => onError(createError('request timeout', null, 408)))
-  }
-
-  if (resOrSocket instanceof net.Socket) {
-    if (headOrNil && headOrNil.length) {
-      resOrSocket.unshift(headOrNil)
-    }
-
-    setupSocket(resOrSocket)
-  }
-
-  const headers = getRequestHeaders(req)
-
-  if (proxyName) {
-    if (headers[HTTP2_HEADER_VIA]) {
-      headers[HTTP2_HEADER_VIA] += `,${proxyName}`
-    } else {
-      headers[HTTP2_HEADER_VIA] = proxyName
-    }
-  }
-
-  const options = {
-    method: req.method,
-    hostname,
-    port,
-    path: req.url,
-    headers,
-    timeout: proxyTimeout
-  }
-
-  if (onReq) {
-    onReq(req, options)
-  }
-
-  const proxyReq = http.request(options)
-
-  const onProxyError = err => {
-    if (proxyReq.aborted) {
+  _onProxyError (err) {
+    if (this.proxyReq.aborted) {
       return
     }
-    proxyReq.abort()
+
+    this.proxyReq.abort()
 
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
       err.statusCode = 503
@@ -145,81 +282,7 @@ function impl (req, resOrSocket, headOrNil, {
       err.statusCode = 500
     }
 
-    onError(err)
-  }
-
-  req
-    .on('close', () => proxyReq.abort())
-    .pipe(proxyReq)
-    .on('error', onProxyError)
-    // NOTE http.ClientRequest emits "socket hang up" error when aborted
-    // before having received a response, i.e. there is no need to listen for
-    // proxyReq.on('aborted', ...).
-    .on('timeout', () => onProxyError(createError('gateway timeout', null, 504)))
-    .on('response', proxyRes => {
-      proxyRes.on('aborted', () => onProxyError(createError('socket hang up', 'ECONNRESET', 502)))
-
-      if (resOrSocket instanceof net.Socket) {
-        if (onRes) {
-          onRes(req, resOrSocket)
-        }
-
-        if (!proxyRes.upgrade) {
-          resOrSocket.end()
-        }
-      } else {
-        setupHeaders(proxyRes.headers)
-
-        resOrSocket.statusCode = proxyRes.statusCode
-        for (const key of Object.keys(proxyRes.headers)) {
-          resOrSocket.setHeader(key, proxyRes.headers[key])
-        }
-
-        if (onRes) {
-          onRes(req, resOrSocket)
-        }
-
-        resOrSocket.writeHead(resOrSocket.statusCode)
-        proxyRes
-          .on('end', () => resOrSocket.addTrailers(proxyRes.trailers))
-          .on('error', onProxyError)
-          .pipe(resOrSocket)
-      }
-    })
-
-  if (resOrSocket instanceof net.Socket) {
-    proxyReq.on('upgrade', (proxyRes, proxySocket, proxyHead) => {
-      setupSocket(proxySocket)
-
-      if (proxyHead && proxyHead.length) {
-        proxySocket.unshift(proxyHead)
-      }
-
-      let head = 'HTTP/1.1 101 Switching Protocols'
-
-      for (const key of Object.keys(proxyRes.headers)) {
-        const value = proxyRes.headers[key]
-
-        if (!Array.isArray(value)) {
-          head += '\r\n' + key + ': ' + value
-        } else {
-          for (let i = 0; i < value.length; i++) {
-            head += '\r\n' + key + ': ' + value[i]
-          }
-        }
-      }
-
-      head += '\r\n\r\n'
-
-      resOrSocket.write(head)
-
-      proxyRes.on('error', onProxyError)
-
-      proxySocket
-        .on('error', onProxyError)
-        .pipe(resOrSocket)
-        .pipe(proxySocket)
-    })
+    this._onError(err)
   }
 }
 
