@@ -65,22 +65,22 @@ function impl (req, resOrSocket, headOrNil, {
     }
   }
 
-  (req.stream || req).on('error', onError)
+  req.on('error', onError)
   resOrSocket.on('error', onError)
 
   if (resOrSocket instanceof net.Socket) {
     if (req.method !== 'GET') {
-      onError(createError('method not allowed', null, 405))
+      return onError(createError('method not allowed', null, 405))
     }
 
     if (!req.headers[HTTP2_HEADER_UPGRADE] ||
         req.headers[HTTP2_HEADER_UPGRADE].toLowerCase() !== 'websocket') {
-      onError(createError('bad request', null, 400))
+      return onError(createError('bad request', null, 400))
     }
   }
 
   if (req.httpVersion !== '1.1' && req.httpVersion !== '2.0') {
-    onError(createError('http version not supported', null, 505))
+    return onError(createError('http version not supported', null, 505))
   }
 
   if (proxyName &&
@@ -89,7 +89,7 @@ function impl (req, resOrSocket, headOrNil, {
         .split(',')
         .some(name => sanitize(name).endsWith(proxyName.toLowerCase()))
   ) {
-    onError(createError('loop detected', null, 508))
+    return onError(createError('loop detected', null, 508))
   }
 
   if (timeout) {
