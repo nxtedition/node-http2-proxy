@@ -217,12 +217,14 @@ function onProxyResponse (proxyRes) {
 
     this[kRes].writeHead(this[kRes].statusCode)
     proxyRes
-      .on('end', function () {
-        this[kRes].addTrailers(this.trailers)
-      })
+      .on('end', onProxyTrailers)
       .on('error', onFinish)
       .pipe(this[kRes])
   }
+}
+
+function onProxyTrailers () {
+  this[kRes].addTrailers(this.trailers)
 }
 
 function onProxyAborted () {
