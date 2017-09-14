@@ -156,12 +156,14 @@ function onFinish (err, statusCode) {
 
   assert(res, 'missing res object')
 
-  if (!res[kProxyReq]) {
+  if (!res[kProxyCallback]) {
     return
   }
 
-  res[kProxyReq].abort()
-  res[kProxyReq] = null
+  if (res[kProxyReq]) {
+    res[kProxyReq].abort()
+    res[kProxyReq] = null
+  }
 
   if (res[kProxySocket]) {
     res[kProxySocket].end()
@@ -192,6 +194,7 @@ function onFinish (err, statusCode) {
   }
 
   res[kProxyCallback].call(null, err, res[kReq], res)
+  res[kProxyCallback] = null
 }
 
 function onRequestTimeout () {
