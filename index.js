@@ -178,11 +178,7 @@ function onFinish (err, statusCode) {
     res.end()
   }
 
-  if (res[kCallback]) {
-    res[kCallback](err, res[kReq], res)
-  } else {
-    throw err
-  }
+  res[kCallback].call(null, err, res[kReq], res)
 }
 
 function onRequestTimeout () {
