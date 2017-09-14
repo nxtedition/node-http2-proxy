@@ -119,7 +119,7 @@ function impl (req, resOrSocket, headOrNil, {
 
   let hasError = false
 
-  function onFinish (err, statusCode = err.statusCode || 500) {
+  function onFinish (err, statusCode) {
     if (hasError) {
       return
     }
@@ -134,9 +134,8 @@ function impl (req, resOrSocket, headOrNil, {
 
     hasError = true
 
-    if (!err.code) {
-      err.code = resOrSocket.code
-    }
+    err.statusCode = statusCode || err.statusCode || 500
+    err.code = err.code || resOrSocket.code
 
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
       err.statusCode = 503
