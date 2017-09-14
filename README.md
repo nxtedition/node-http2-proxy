@@ -40,13 +40,21 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000
-  }, err => console.error(err, 'proxy error'))
+  }, err => {
+    if (err) {
+      console.error('proxy error', err)
+    }
+  })
 })
 server.on('upgrade', (req, socket, head) => {
   proxy.ws(req, socket, head, {
     hostname: 'localhost'
     port: 9000
-  }, err => console.error('proxy error', err))
+  }, err => {
+    if (err) {
+      console.error('proxy error', err)
+    }
+  })
 })
 ```
 
