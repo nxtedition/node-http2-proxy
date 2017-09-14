@@ -51,6 +51,7 @@ function impl (req, res, headOrNil, {
   res[kReq] = req
   res[kRes] = res
   res[kCallback] = callback
+  res[kProxyReq] = null
 
   let promise
 
