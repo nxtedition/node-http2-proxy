@@ -63,7 +63,7 @@ function impl (req, resOrSocket, headOrNil, {
   }
 
   if (timeout) {
-    req.setTimeout(timeout, () => onFinish(createError('request timeout', null, 408)))
+    req.setTimeout(timeout, onRequestTimeout)
   }
 
   if (resOrSocket instanceof net.Socket) {
@@ -97,7 +97,13 @@ function impl (req, resOrSocket, headOrNil, {
     onReq(req, options)
   }
 
+  req.__onFinish = onFinish
+
   const proxyReq = http.request(options)
+  proxyReq.__req = req
+  proxyReq.__res = resOrSocket
+  proxyReq.__onRes = onRes
+  proxyReq.__onFinish = onFinish
 
   resOrSocket
     .on('finish', onFinish)
@@ -113,26 +119,20 @@ function impl (req, resOrSocket, headOrNil, {
     // NOTE http.ClientRequest emits "socket hang up" error when aborted
     // before having received a response, i.e. there is no need to listen for
     // proxyReq.on('aborted', ...).
-    .on('timeout', () => onFinish(createError('gateway timeout', null, 504)))
+    .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
 
-  let hasError = false
-
   function onFinish (err, statusCode) {
-    if (hasError) {
+    if (proxyReq.aborted) {
       return
     }
 
-    if (proxyReq && !proxyReq.aborted) {
-      proxyReq.abort()
-    }
+    proxyReq.abort()
 
     if (!err) {
       return
     }
-
-    hasError = true
 
     err.statusCode = statusCode || err.statusCode || 500
     err.code = err.code || resOrSocket.code
@@ -158,74 +158,90 @@ function impl (req, resOrSocket, headOrNil, {
       throw err
     }
   }
+}
 
-  function onProxyResponse (proxyRes) {
-    if (this.aborted) {
-      return
-    }
+function onRequestTimeout () {
+  this.__onFinish(createError('request timeout', null, 408))
+}
 
-    proxyRes.on('aborted', () => onFinish(createError('socket hang up', 'ECONNRESET', 502)))
+function onProxyTimeout () {
+  this.__onFinish(createError('gateway timeout', null, 504))
+}
 
-    if (resOrSocket instanceof net.Socket) {
-      if (!proxyRes.upgrade) {
-        resOrSocket.end()
-      }
-    } else {
-      setupHeaders(proxyRes.headers)
-
-      resOrSocket.statusCode = proxyRes.statusCode
-      for (const key of Object.keys(proxyRes.headers)) {
-        resOrSocket.setHeader(key, proxyRes.headers[key])
-      }
-
-      if (onRes) {
-        onRes(req, resOrSocket)
-      }
-
-      resOrSocket.writeHead(resOrSocket.statusCode)
-      proxyRes
-        .on('end', () => resOrSocket.addTrailers(proxyRes.trailers))
-        .on('error', onFinish)
-        .pipe(resOrSocket)
-    }
+function onProxyResponse (proxyRes) {
+  if (this.aborted) {
+    return
   }
 
-  function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
-    if (this.aborted) {
-      return
+  proxyRes.__req = this
+
+  proxyRes.on('aborted', onProxyResAborted)
+
+  if (this.__res instanceof net.Socket) {
+    if (!proxyRes.upgrade) {
+      this.__res.end()
     }
+  } else {
+    setupHeaders(proxyRes.headers)
 
-    setupSocket(proxySocket)
-
-    if (proxyHead && proxyHead.length) {
-      proxySocket.unshift(proxyHead)
-    }
-
-    let head = 'HTTP/1.1 101 Switching Protocols'
-
+    this.__res.statusCode = proxyRes.statusCode
     for (const key of Object.keys(proxyRes.headers)) {
-      const value = proxyRes.headers[key]
-
-      if (!Array.isArray(value)) {
-        head += '\r\n' + key + ': ' + value
-      } else {
-        for (let i = 0; i < value.length; i++) {
-          head += '\r\n' + key + ': ' + value[i]
-        }
-      }
+      this.__res.setHeader(key, proxyRes.headers[key])
     }
 
-    head += '\r\n\r\n'
+    if (this.__onRes) {
+      this.__onRes(this.__req, this.__res)
+    }
 
-    resOrSocket.write(head)
-
-    proxyRes.on('error', onFinish)
-
-    proxySocket
-      .on('error', onFinish)
-      .pipe(resOrSocket)
-      .pipe(proxySocket)
+    this.__res.writeHead(this.__res.statusCode)
+    proxyRes
+      .on('end', function () {
+        this.__req.__res.addTrailers(this.trailers)
+      })
+      .on('error', this.__onFinish)
+      .pipe(this.__res)
   }
+}
+
+function onProxyResAborted () {
+  this.__req.__onFinish(createError('socket hang up', 'ECONNRESET', 502))
+}
+
+function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
+  if (this.aborted) {
+    return
+  }
+
+  setupSocket(proxySocket)
+
+  if (proxyHead && proxyHead.length) {
+    proxySocket.unshift(proxyHead)
+  }
+
+  let head = 'HTTP/1.1 101 Switching Protocols'
+
+  for (const key of Object.keys(proxyRes.headers)) {
+    const value = proxyRes.headers[key]
+
+    if (!Array.isArray(value)) {
+      head += '\r\n' + key + ': ' + value
+    } else {
+      for (let i = 0; i < value.length; i++) {
+        head += '\r\n' + key + ': ' + value[i]
+      }
+    }
+  }
+
+  head += '\r\n\r\n'
+
+  this.__res.write(head)
+
+  proxyRes.on('error', this.__onFinish)
+
+  proxySocket
+    .on('error', this.__onFinish)
+    .pipe(this.__res)
+    .pipe(proxySocket)
 }
 
 function getRequestHeaders (req) {
