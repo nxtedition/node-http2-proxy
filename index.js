@@ -159,11 +159,6 @@ function impl (req, resOrSocket, headOrNil, {
     }
   }
 
-  // XXX Do we need this?
-  if (req.stream) {
-    req.stream.on('error', onError)
-  }
-
   resOrSocket
     .on('finish', onFinish)
     .on('close', onFinish)
