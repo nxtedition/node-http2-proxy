@@ -21,7 +21,7 @@ $ npm install http2-proxy
 
 `http2-proxy` requires node **v8.5.0** or newer with `http2` enabled. Pass the `--expose-http2` option when starting node **v8.x.x**.
 
-### Usage
+### HTTP/1 API
 
 You must pass `allowHTTP1: true` to the `http2.createServer` or `http2.createSecureServer` factory methods.
 
@@ -33,7 +33,7 @@ const server = http2.createServer({ allowHTTP1: true })
 server.listen(8000)
 ```
 
-#### Proxy HTTP 1.1/2 and WebSocket
+#### Proxy HTTP/2, HTTP/1.1 and WebSocket
 
 ```js
 server.on('request', (req, res) => {
@@ -74,7 +74,7 @@ server.on('request', (req, res) => {
 })
 ```
 
-#### Add x-forwarded  headers
+#### Add x-forwarded headers
 
 ```javascript
 server.on('request', (req, res) => {
@@ -93,8 +93,6 @@ server.on('request', (req, res) => {
   })
 })
 ```
-
-### API
 
 #### web (req, res, options, [callback])
 
@@ -132,6 +130,79 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
   - `onRes(req, resOrSocket)`: Called before proxy response
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
     - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket)
+
+### HTTP/2 API
+
+If HTTP/1 support is not required use the HTTP/2 `stream` API which has a lower overhead.
+
+```js
+import http2 from 'http2'
+import proxy from 'http2-proxy'
+
+const server = http2.createServer()
+server.listen(8000)
+```
+
+#### Proxy HTTP/2
+
+```js
+server.on('stream', (stream, headers) => {
+  proxy.web(stream, headers, {
+    hostname: 'localhost'
+    port: 9000
+  }, err => {
+    if (err) {
+      console.error('proxy error', err)
+    }
+  })
+})
+```
+
+#### Add x-forwarded  headers
+
+```javascript
+server.on('stream', (stream, headers) => {
+  proxy.web(stream, { headers }, {
+    hostname: 'localhost'
+    port: 9000,
+    onReq: (stream, headers) => {
+      headers['x-forwarded-for'] = stream.socket.remoteAddress
+      headers['x-forwarded-proto'] = stream.socket.encrypted ? 'https' : 'http'
+      headers['x-forwarded-host'] = stream.headers['host']
+    }
+  }, err => {
+    if (err) {
+      console.error('proxy error', err)
+    }
+  })
+})
+```
+
+#### web (stream, headers, options, [callback])
+
+- `stream`: [`http2.Http2Stream`](https://nodejs.org/api/http2.html#http2_class_http2_http2stream)
+- `headers`: Request headers object
+- `options`: See [Options](#options)
+- `callback(err)`: Called on completion or error. Optional
+
+Returns a promise if no callback is provided.
+
+See [`request`](https://nodejs.org/api/http.html#http_event_request)
+
+### Options
+
+  - `hostname`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target hostname
+  - `port`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target port
+  - `proxyTimeout`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout
+  - `proxyName`: Proxy name used for **Via** header
+  - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout
+  - `onReq(req, options)`: Called before proxy request
+    - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
+    - `options`: Options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback)
+  - `onRes(req, headers)`: Called before proxy response
+    - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
+    - `headers`: Response headers object
+
 
 ### License
 
