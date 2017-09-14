@@ -89,7 +89,7 @@ function proxy (req, res, head, {
     }
   }
 
-  if (timeout) {
+  if (timeout != null) {
     req.setTimeout(timeout, onRequestTimeout)
   }
 
