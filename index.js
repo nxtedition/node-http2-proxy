@@ -24,10 +24,10 @@ const {
 
 module.exports = {
   ws (req, socket, head, options, callback) {
-    impl(req, socket, head, options, callback)
+    proxy(req, socket, head, options, callback)
   },
   web (req, res, options, callback) {
-    impl(req, res, null, options, callback)
+    proxy(req, res, null, options, callback)
   }
 }
 
@@ -37,7 +37,7 @@ const kCallback = Symbol('callback')
 const kProxyReq = Symbol('proxyReq')
 const kOnRes = Symbol('onRes')
 
-function impl (req, res, head, {
+function proxy (req, res, head, {
   hostname,
   port,
   timeout,
