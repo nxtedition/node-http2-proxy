@@ -35,6 +35,8 @@ const kReq = Symbol('req')
 const kRes = Symbol('res')
 const kCallback = Symbol('callback')
 const kProxyReq = Symbol('proxyReq')
+const kProxyRes = Symbol('proxyRes')
+const kProxySocket = Symbol('proxySocket')
 const kOnRes = Symbol('onRes')
 
 function proxy (req, res, head, {
@@ -52,6 +54,8 @@ function proxy (req, res, head, {
   res[kRes] = res
   res[kCallback] = callback
   res[kProxyReq] = null
+  res[kProxyRes] = null
+  res[kProxySocket] = null
 
   let promise
 
@@ -152,11 +156,22 @@ function onFinish (err, statusCode) {
 
   assert(res, 'missing res object')
 
-  if (res[kProxyReq].aborted) {
+  if (!res[kProxyReq]) {
     return
   }
 
   res[kProxyReq].abort()
+  res[kProxyReq] = null
+
+  if (res[kProxySocket]) {
+    res[kProxySocket].end()
+    res[kProxySocket] = null
+  }
+
+  if (res[kProxyRes]) {
+    res[kProxyRes].destroy()
+    res[kProxyRes] = null
+  }
 
   if (err) {
     err.statusCode = statusCode || err.statusCode || 500
@@ -191,6 +206,8 @@ function onProxyResponse (proxyRes) {
   if (this.aborted) {
     return
   }
+
+  this[kRes][kProxyRes] = proxyRes
 
   proxyRes[kRes] = this[kRes]
 
@@ -232,6 +249,9 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   if (this.aborted) {
     return
   }
+
+  this[kRes][kProxySocket] = proxySocket
+  this[kRes][kProxyRes] = proxyRes
 
   proxyRes[kRes] = this[kRes]
   proxySocket[kRes] = this[kRes]
