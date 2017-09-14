@@ -66,8 +66,7 @@ function impl (req, res, headOrNil, {
       return onFinish.call(res, createError('method not allowed', null, 405))
     }
 
-    if (!req.headers[HTTP2_HEADER_UPGRADE] ||
-        req.headers[HTTP2_HEADER_UPGRADE].toLowerCase() !== 'websocket') {
+    if (sanitize(req.headers[HTTP2_HEADER_UPGRADE]) !== 'websocket') {
       return onFinish.call(res, createError('bad request', null, 400))
     }
   }
