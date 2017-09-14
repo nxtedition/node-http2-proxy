@@ -146,10 +146,7 @@ function impl (req, resOrSocket, headOrNil, {
       err.statusCode = 502
     }
 
-    if (resOrSocket.closed === true ||
-        resOrSocket.headersSent !== false ||
-        !resOrSocket.writeHead
-    ) {
+    if (resOrSocket.headersSent !== false) {
       resOrSocket.destroy()
     } else {
       resOrSocket.writeHead(statusCode)
