@@ -287,14 +287,14 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 
   head += '\r\n\r\n'
 
-  this[kRes].write(head)
+  res.write(head)
 
   proxyRes
     .on('error', onFinish)
 
   proxySocket
     .on('error', onFinish)
-    .pipe(this[kRes])
+    .pipe(res)
     .pipe(proxySocket)
 }
 
