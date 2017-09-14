@@ -57,6 +57,8 @@ function proxy (req, res, head, {
   res[kProxyRes] = null
   res[kProxySocket] = null
 
+  assert(typeof callback === 'function' || callback == null)
+
   let promise
 
   if (!callback) {
@@ -154,7 +156,7 @@ function proxy (req, res, head, {
 function onFinish (err, statusCode) {
   const res = this[kRes]
 
-  assert(res, 'missing res object')
+  assert(res)
 
   if (!res[kProxyCallback]) {
     return
