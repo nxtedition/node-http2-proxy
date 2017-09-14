@@ -212,33 +212,35 @@ function onProxyResponse (proxyRes) {
     return
   }
 
-  this[kRes][kProxyRes] = proxyRes
+  const res = this[kRes]
 
-  proxyRes[kRes] = this[kRes]
+  res[kProxyRes] = proxyRes
+
+  proxyRes[kRes] = res
 
   proxyRes.on('aborted', onProxyAborted)
 
-  if (this[kRes] instanceof net.Socket) {
+  if (res instanceof net.Socket) {
     if (!proxyRes.upgrade) {
-      this[kRes].end()
+      res.end()
     }
   } else {
     setupHeaders(proxyRes.headers)
 
-    this[kRes].statusCode = proxyRes.statusCode
+    res.statusCode = proxyRes.statusCode
     for (const key of Object.keys(proxyRes.headers)) {
-      this[kRes].setHeader(key, proxyRes.headers[key])
+      res.setHeader(key, proxyRes.headers[key])
     }
 
     if (this[kOnProxyRes]) {
-      this[kOnProxyRes](this[kReq], this[kRes])
+      this[kOnProxyRes](this[kReq], res)
     }
 
-    this[kRes].writeHead(this[kRes].statusCode)
+    res.writeHead(res.statusCode)
     proxyRes
       .on('end', onProxyTrailers)
       .on('error', onFinish)
-      .pipe(this[kRes])
+      .pipe(res)
   }
 }
 
@@ -255,11 +257,13 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
     return
   }
 
-  this[kRes][kProxySocket] = proxySocket
-  this[kRes][kProxyRes] = proxyRes
+  const res = this[kRes]
 
-  proxyRes[kRes] = this[kRes]
-  proxySocket[kRes] = this[kRes]
+  res[kProxySocket] = proxySocket
+  res[kProxyRes] = proxyRes
+
+  proxyRes[kRes] = res
+  proxySocket[kRes] = res
 
   setupSocket(proxySocket)
 
