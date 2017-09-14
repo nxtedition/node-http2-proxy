@@ -109,11 +109,11 @@ function impl (req, resOrSocket, headOrNil, {
     .on('close', onFinish)
     .on('error', onFinish)
     .pipe(proxyReq)
-    .on('error', onProxyError)
+    .on('error', onFinish)
     // NOTE http.ClientRequest emits "socket hang up" error when aborted
     // before having received a response, i.e. there is no need to listen for
     // proxyReq.on('aborted', ...).
-    .on('timeout', () => onProxyError(createError('gateway timeout', null, 504)))
+    .on('timeout', () => onFinish(createError('gateway timeout', null, 504)))
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
 
@@ -138,6 +138,14 @@ function impl (req, resOrSocket, headOrNil, {
       err.code = resOrSocket.code
     }
 
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+      err.statusCode = 503
+    } else if (/HPE_INVALID/.test(err.code)) {
+      err.statusCode = 502
+    } else if (err.code === 'ECONNRESET') {
+      err.statusCode = 502
+    }
+
     if (resOrSocket.closed === true ||
         resOrSocket.headersSent !== false ||
         !resOrSocket.writeHead
@@ -155,24 +163,12 @@ function impl (req, resOrSocket, headOrNil, {
     }
   }
 
-  function onProxyError (err) {
-    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-      err.statusCode = 503
-    } else if (/HPE_INVALID/.test(err.code)) {
-      err.statusCode = 502
-    } else if (err.code === 'ECONNRESET') {
-      err.statusCode = 502
-    }
-
-    onFinish(err)
-  }
-
   function onProxyResponse (proxyRes) {
     if (this.aborted) {
       return
     }
 
-    proxyRes.on('aborted', () => onProxyError(createError('socket hang up', 'ECONNRESET', 502)))
+    proxyRes.on('aborted', () => onFinish(createError('socket hang up', 'ECONNRESET', 502)))
 
     if (resOrSocket instanceof net.Socket) {
       if (!proxyRes.upgrade) {
@@ -193,7 +189,7 @@ function impl (req, resOrSocket, headOrNil, {
       resOrSocket.writeHead(resOrSocket.statusCode)
       proxyRes
         .on('end', () => resOrSocket.addTrailers(proxyRes.trailers))
-        .on('error', onProxyError)
+        .on('error', onFinish)
         .pipe(resOrSocket)
     }
   }
@@ -227,10 +223,10 @@ function impl (req, resOrSocket, headOrNil, {
 
     resOrSocket.write(head)
 
-    proxyRes.on('error', onProxyError)
+    proxyRes.on('error', onFinish)
 
     proxySocket
-      .on('error', onProxyError)
+      .on('error', onFinish)
       .pipe(resOrSocket)
       .pipe(proxySocket)
   }
