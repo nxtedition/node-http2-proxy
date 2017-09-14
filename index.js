@@ -42,13 +42,17 @@ function impl (req, resOrSocket, headOrNil, {
   let hasError = false
   let proxyReq
 
-  function onError (err, statusCode = err.statusCode || 500) {
+  function onFinish (err, statusCode = err.statusCode || 500) {
     if (hasError) {
       return
     }
 
     if (proxyReq && !proxyReq.aborted) {
       proxyReq.abort()
+    }
+
+    if (!err) {
+      return
     }
 
     hasError = true
@@ -76,29 +80,29 @@ function impl (req, resOrSocket, headOrNil, {
 
   if (resOrSocket instanceof net.Socket) {
     if (req.method !== 'GET') {
-      return onError(createError('method not allowed', null, 405))
+      return onFinish(createError('method not allowed', null, 405))
     }
 
     if (!req.headers[HTTP2_HEADER_UPGRADE] ||
         req.headers[HTTP2_HEADER_UPGRADE].toLowerCase() !== 'websocket') {
-      return onError(createError('bad request', null, 400))
+      return onFinish(createError('bad request', null, 400))
     }
   }
 
   if (req.httpVersion !== '1.1' && req.httpVersion !== '2.0') {
-    return onError(createError('http version not supported', null, 505))
+    return onFinish(createError('http version not supported', null, 505))
   }
 
   if (proxyName && req.headers[HTTP2_HEADER_VIA]) {
     for (const name of req.headers[HTTP2_HEADER_VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
-        return onError(createError('loop detected', null, 508))
+        return onFinish(createError('loop detected', null, 508))
       }
     }
   }
 
   if (timeout) {
-    req.setTimeout(timeout, () => onError(createError('request timeout', null, 408)))
+    req.setTimeout(timeout, () => onFinish(createError('request timeout', null, 408)))
   }
 
   if (resOrSocket instanceof net.Socket) {
@@ -150,24 +154,18 @@ function impl (req, resOrSocket, headOrNil, {
       err.statusCode = 500
     }
 
-    onError(err)
-  }
-
-  function onFinish () {
-    if (!proxyReq.aborted) {
-      proxyReq.abort()
-    }
+    onFinish(err)
   }
 
   resOrSocket
     .on('finish', onFinish)
     .on('close', onFinish)
-    .on('error', onError)
+    .on('error', onFinish)
 
   req
     .on('aborted', onFinish)
     .on('close', onFinish)
-    .on('error', onError)
+    .on('error', onFinish)
     .pipe(proxyReq)
     .on('error', onProxyError)
     // NOTE http.ClientRequest emits "socket hang up" error when aborted
