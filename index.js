@@ -138,25 +138,6 @@ function impl (req, resOrSocket, headOrNil, {
 
   proxyReq = http.request(options)
 
-  const onProxyError = err => {
-    if (proxyReq.aborted) {
-      return
-    }
-    proxyReq.abort()
-
-    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-      err.statusCode = 503
-    } else if (/HPE_INVALID/.test(err.code)) {
-      err.statusCode = 502
-    } else if (err.code === 'ECONNRESET') {
-      err.statusCode = 502
-    } else {
-      err.statusCode = 500
-    }
-
-    onFinish(err)
-  }
-
   resOrSocket
     .on('finish', onFinish)
     .on('close', onFinish)
@@ -172,68 +153,100 @@ function impl (req, resOrSocket, headOrNil, {
     // before having received a response, i.e. there is no need to listen for
     // proxyReq.on('aborted', ...).
     .on('timeout', () => onProxyError(createError('gateway timeout', null, 504)))
-    .on('response', proxyRes => {
-      proxyRes.on('aborted', () => onProxyError(createError('socket hang up', 'ECONNRESET', 502)))
+    .on('response', onProxyResponse)
+    .on('upgrade', onProxyUpgrade)
 
-      if (resOrSocket instanceof net.Socket) {
-        if (onRes) {
-          onRes(req, resOrSocket)
-        }
+  function onProxyError (err) {
+    if (proxyReq.aborted) {
+      return
+    }
 
-        if (!proxyRes.upgrade) {
-          resOrSocket.end()
-        }
-      } else {
-        setupHeaders(proxyRes.headers)
+    proxyReq.abort()
 
-        resOrSocket.statusCode = proxyRes.statusCode
-        for (const key of Object.keys(proxyRes.headers)) {
-          resOrSocket.setHeader(key, proxyRes.headers[key])
-        }
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+      err.statusCode = 503
+    } else if (/HPE_INVALID/.test(err.code)) {
+      err.statusCode = 502
+    } else if (err.code === 'ECONNRESET') {
+      err.statusCode = 502
+    } else {
+      err.statusCode = 500
+    }
 
-        if (onRes) {
-          onRes(req, resOrSocket)
-        }
+    onFinish(err)
+  }
 
-        resOrSocket.writeHead(resOrSocket.statusCode)
-        proxyRes
-          .on('end', () => resOrSocket.addTrailers(proxyRes.trailers))
-          .on('error', onProxyError)
-          .pipe(resOrSocket)
-      }
-    })
-    .on('upgrade', (proxyRes, proxySocket, proxyHead) => {
-      setupSocket(proxySocket)
+  function onProxyResponse (proxyRes) {
+    if (this.aborted) {
+      return
+    }
 
-      if (proxyHead && proxyHead.length) {
-        proxySocket.unshift(proxyHead)
+    proxyRes.on('aborted', () => onProxyError(createError('socket hang up', 'ECONNRESET', 502)))
+
+    if (resOrSocket instanceof net.Socket) {
+      if (onRes) {
+        onRes(req, resOrSocket)
       }
 
-      let head = 'HTTP/1.1 101 Switching Protocols'
+      if (!proxyRes.upgrade) {
+        resOrSocket.end()
+      }
+    } else {
+      setupHeaders(proxyRes.headers)
 
+      resOrSocket.statusCode = proxyRes.statusCode
       for (const key of Object.keys(proxyRes.headers)) {
-        const value = proxyRes.headers[key]
-
-        if (!Array.isArray(value)) {
-          head += '\r\n' + key + ': ' + value
-        } else {
-          for (let i = 0; i < value.length; i++) {
-            head += '\r\n' + key + ': ' + value[i]
-          }
-        }
+        resOrSocket.setHeader(key, proxyRes.headers[key])
       }
 
-      head += '\r\n\r\n'
+      if (onRes) {
+        onRes(req, resOrSocket)
+      }
 
-      resOrSocket.write(head)
-
-      proxyRes.on('error', onProxyError)
-
-      proxySocket
+      resOrSocket.writeHead(resOrSocket.statusCode)
+      proxyRes
+        .on('end', () => resOrSocket.addTrailers(proxyRes.trailers))
         .on('error', onProxyError)
         .pipe(resOrSocket)
-        .pipe(proxySocket)
-    })
+    }
+  }
+
+  function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
+    if (this.aborted) {
+      return
+    }
+
+    setupSocket(proxySocket)
+
+    if (proxyHead && proxyHead.length) {
+      proxySocket.unshift(proxyHead)
+    }
+
+    let head = 'HTTP/1.1 101 Switching Protocols'
+
+    for (const key of Object.keys(proxyRes.headers)) {
+      const value = proxyRes.headers[key]
+
+      if (!Array.isArray(value)) {
+        head += '\r\n' + key + ': ' + value
+      } else {
+        for (let i = 0; i < value.length; i++) {
+          head += '\r\n' + key + ': ' + value[i]
+        }
+      }
+    }
+
+    head += '\r\n\r\n'
+
+    resOrSocket.write(head)
+
+    proxyRes.on('error', onProxyError)
+
+    proxySocket
+      .on('error', onProxyError)
+      .pipe(resOrSocket)
+      .pipe(proxySocket)
+  }
 }
 
 function getRequestHeaders (req) {
