@@ -261,7 +261,8 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 
   this[kRes].write(head)
 
-  proxyRes.on('error', onFinish)
+  proxyRes
+    .on('error', onFinish)
 
   proxySocket
     .on('error', onFinish)
