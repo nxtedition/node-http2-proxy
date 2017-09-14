@@ -324,7 +324,7 @@ function setupHeaders (headers) {
 
   if (connection && connection !== 'close' && connection !== 'keep-alive') {
     for (const name of connection.split(',')) {
-      delete headers[sanitize(name)]
+      delete headers[name.trim()]
     }
   }
 
