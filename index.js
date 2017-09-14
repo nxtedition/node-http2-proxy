@@ -40,6 +40,20 @@ function impl (req, res, headOrNil, {
   onReq,
   onRes
 }, callback) {
+  req.__res = res
+
+  res.__req = req
+  res.__res = res
+  res.__callback = callback
+
+  let promise
+
+  if (!callback) {
+    promise = new Promise((resolve, reject) => {
+      res.__callback = err => err ? reject(err) : resolve()
+    })
+  }
+
   if (res instanceof net.Socket) {
     if (req.method !== 'GET') {
       return onFinish.call(res, createError('method not allowed', null, 405))
@@ -104,12 +118,7 @@ function impl (req, res, headOrNil, {
   proxyReq.__res = res
   proxyReq.__onRes = onRes
 
-  req.__res = res
-
-  res.__req = req
-  res.__res = res
   res.__proxyReq = proxyReq
-  res.__callback = callback
 
   res
     .on('finish', onFinish)
@@ -129,11 +138,7 @@ function impl (req, res, headOrNil, {
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
 
-  if (!callback) {
-    return new Promise((resolve, reject) => {
-      res.__callback = err => err ? reject(err) : resolve()
-    })
-  }
+  return promise
 }
 
 function onFinish (err, statusCode) {
