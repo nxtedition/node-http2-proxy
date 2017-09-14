@@ -166,8 +166,6 @@ function onFinish (err, statusCode) {
       err.statusCode = 503
     } else if (/HPE_INVALID/.test(err.code)) {
       err.statusCode = 502
-    } else if (err.code === 'ECONNRESET') {
-      err.statusCode = 502
     }
   }
 
