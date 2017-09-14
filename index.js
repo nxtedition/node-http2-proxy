@@ -39,45 +39,6 @@ function impl (req, resOrSocket, headOrNil, {
   onReq,
   onRes
 }, callback) {
-  let hasError = false
-  let proxyReq
-
-  function onFinish (err, statusCode = err.statusCode || 500) {
-    if (hasError) {
-      return
-    }
-
-    if (proxyReq && !proxyReq.aborted) {
-      proxyReq.abort()
-    }
-
-    if (!err) {
-      return
-    }
-
-    hasError = true
-
-    if (!err.code) {
-      err.code = resOrSocket.code
-    }
-
-    if (resOrSocket.closed === true ||
-        resOrSocket.headersSent !== false ||
-        !resOrSocket.writeHead
-    ) {
-      resOrSocket.destroy()
-    } else {
-      resOrSocket.writeHead(statusCode)
-      resOrSocket.end()
-    }
-
-    if (callback) {
-      callback(err, req, resOrSocket)
-    } else {
-      throw err
-    }
-  }
-
   if (resOrSocket instanceof net.Socket) {
     if (req.method !== 'GET') {
       return onFinish(createError('method not allowed', null, 405))
@@ -136,7 +97,7 @@ function impl (req, resOrSocket, headOrNil, {
     onReq(req, options)
   }
 
-  proxyReq = http.request(options)
+  const proxyReq = http.request(options)
 
   resOrSocket
     .on('finish', onFinish)
@@ -155,6 +116,44 @@ function impl (req, resOrSocket, headOrNil, {
     .on('timeout', () => onProxyError(createError('gateway timeout', null, 504)))
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
+
+  let hasError = false
+
+  function onFinish (err, statusCode = err.statusCode || 500) {
+    if (hasError) {
+      return
+    }
+
+    if (proxyReq && !proxyReq.aborted) {
+      proxyReq.abort()
+    }
+
+    if (!err) {
+      return
+    }
+
+    hasError = true
+
+    if (!err.code) {
+      err.code = resOrSocket.code
+    }
+
+    if (resOrSocket.closed === true ||
+        resOrSocket.headersSent !== false ||
+        !resOrSocket.writeHead
+    ) {
+      resOrSocket.destroy()
+    } else {
+      resOrSocket.writeHead(statusCode)
+      resOrSocket.end()
+    }
+
+    if (callback) {
+      callback(err, req, resOrSocket)
+    } else {
+      throw err
+    }
+  }
 
   function onProxyError (err) {
     if (proxyReq.aborted) {
