@@ -204,9 +204,7 @@ function impl (req, resOrSocket, headOrNil, {
           .pipe(resOrSocket)
       }
     })
-
-  if (resOrSocket instanceof net.Socket) {
-    proxyReq.on('upgrade', (proxyRes, proxySocket, proxyHead) => {
+    .on('upgrade', (proxyRes, proxySocket, proxyHead) => {
       setupSocket(proxySocket)
 
       if (proxyHead && proxyHead.length) {
@@ -238,7 +236,6 @@ function impl (req, resOrSocket, headOrNil, {
         .pipe(resOrSocket)
         .pipe(proxySocket)
     })
-  }
 }
 
 function getRequestHeaders (req) {
