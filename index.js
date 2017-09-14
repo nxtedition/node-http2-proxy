@@ -74,9 +74,6 @@ function impl (req, resOrSocket, headOrNil, {
     }
   }
 
-  (req.stream || req).on('error', onError)
-  resOrSocket.on('error', onError)
-
   if (resOrSocket instanceof net.Socket) {
     if (req.method !== 'GET') {
       return onError(createError('method not allowed', null, 405))
@@ -162,15 +159,20 @@ function impl (req, resOrSocket, headOrNil, {
     }
   }
 
+  // XXX Do we need this?
+  if (req.stream) {
+    req.stream.on('error', onError)
+  }
+
   resOrSocket
     .on('finish', onFinish)
-    .on('error', onFinish)
     .on('close', onFinish)
+    .on('error', onError)
 
   req
     .on('aborted', onFinish)
-    .on('error', onFinish)
     .on('close', onFinish)
+    .on('error', onError)
     .pipe(proxyReq)
     .on('error', onProxyError)
     // NOTE http.ClientRequest emits "socket hang up" error when aborted
