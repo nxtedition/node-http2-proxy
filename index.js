@@ -156,20 +156,12 @@ function impl (req, resOrSocket, headOrNil, {
   }
 
   function onProxyError (err) {
-    if (proxyReq.aborted) {
-      return
-    }
-
-    proxyReq.abort()
-
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
       err.statusCode = 503
     } else if (/HPE_INVALID/.test(err.code)) {
       err.statusCode = 502
     } else if (err.code === 'ECONNRESET') {
       err.statusCode = 502
-    } else {
-      err.statusCode = 500
     }
 
     onFinish(err)
