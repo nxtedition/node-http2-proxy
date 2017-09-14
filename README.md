@@ -66,7 +66,11 @@ server.on('request', (req, res) => {
     hostname: 'localhost'
     port: 9000,
     onRes: (req, res) => helmet(req, res, () => {})
-  }, err => console.error('proxy error', err))
+  }, err => {
+    if (err) {
+      console.error('proxy error', err)
+    }
+  })
 })
 ```
 
@@ -82,7 +86,11 @@ server.on('request', (req, res) => {
       headers['x-forwarded-proto'] = req.socket.encrypted ? 'https' : 'http'
       headers['x-forwarded-host'] = req.headers['host']
     }
-  }, err => console.error(err, 'proxy error'))
+  }, err => {
+    if (err) {
+      console.error('proxy error', err)
+    }
+  })
 })
 ```
 

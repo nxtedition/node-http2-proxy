@@ -279,11 +279,13 @@ function getRequestHeaders (req) {
 
   const headers = setupHeaders(Object.assign({}, req.headers))
 
-  // Remove pseudo headers
-  delete headers[HTTP2_HEADER_AUTHORITY]
-  delete headers[HTTP2_HEADER_METHOD]
-  delete headers[HTTP2_HEADER_PATH]
-  delete headers[HTTP2_HEADER_SCHEME]
+  if (req.httpVersionMajor === 2) {
+    // Remove pseudo headers
+    delete headers[HTTP2_HEADER_AUTHORITY]
+    delete headers[HTTP2_HEADER_METHOD]
+    delete headers[HTTP2_HEADER_PATH]
+    delete headers[HTTP2_HEADER_SCHEME]
+  }
 
   if (upgrade) {
     headers[HTTP2_HEADER_CONNECTION] = 'upgrade'
