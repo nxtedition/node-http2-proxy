@@ -40,10 +40,15 @@ function impl (req, resOrSocket, headOrNil, {
   onRes
 }, callback) {
   let hasError = false
+  let proxyReq
 
   function onError (err, statusCode = err.statusCode || 500) {
     if (hasError) {
       return
+    }
+
+    if (proxyReq && !proxyReq.aborted) {
+      proxyReq.abort()
     }
 
     hasError = true
@@ -130,7 +135,7 @@ function impl (req, resOrSocket, headOrNil, {
     onReq(req, options)
   }
 
-  const proxyReq = http.request(options)
+  proxyReq = http.request(options)
 
   const onProxyError = err => {
     if (proxyReq.aborted) {
@@ -151,8 +156,21 @@ function impl (req, resOrSocket, headOrNil, {
     onError(err)
   }
 
+  function onFinish () {
+    if (!proxyReq.aborted) {
+      proxyReq.abort()
+    }
+  }
+
+  resOrSocket
+    .on('finish', onFinish)
+    .on('error', onFinish)
+    .on('close', onFinish)
+
   req
-    .on('close', () => proxyReq.abort())
+    .on('aborted', onFinish)
+    .on('error', onFinish)
+    .on('close', onFinish)
     .pipe(proxyReq)
     .on('error', onProxyError)
     // NOTE http.ClientRequest emits "socket hang up" error when aborted
