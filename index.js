@@ -196,7 +196,7 @@ function onProxyResponse (proxyRes) {
 
   proxyRes[kRes] = this[kRes]
 
-  proxyRes.on('aborted', onProxyResAborted)
+  proxyRes.on('aborted', onProxyAborted)
 
   if (this[kRes] instanceof net.Socket) {
     if (!proxyRes.upgrade) {
@@ -224,7 +224,7 @@ function onProxyResponse (proxyRes) {
   }
 }
 
-function onProxyResAborted () {
+function onProxyAborted () {
   onFinish.call(this, createError('socket hang up', 'ECONNRESET', 502))
 }
 
