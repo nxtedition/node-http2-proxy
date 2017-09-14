@@ -1,6 +1,7 @@
 const http2 = require('http2')
 const http = require('http')
 const net = require('net')
+const assert = require('assert')
 
 const {
   HTTP2_HEADER_CONNECTION,
@@ -30,7 +31,7 @@ module.exports = {
   }
 }
 
-function impl (req, resOrSocket, headOrNil, {
+function impl (req, res, headOrNil, {
   hostname,
   port,
   timeout,
@@ -39,25 +40,25 @@ function impl (req, resOrSocket, headOrNil, {
   onReq,
   onRes
 }, callback) {
-  if (resOrSocket instanceof net.Socket) {
+  if (res instanceof net.Socket) {
     if (req.method !== 'GET') {
-      return onFinish(createError('method not allowed', null, 405))
+      return onFinish.call(res, createError('method not allowed', null, 405))
     }
 
     if (!req.headers[HTTP2_HEADER_UPGRADE] ||
         req.headers[HTTP2_HEADER_UPGRADE].toLowerCase() !== 'websocket') {
-      return onFinish(createError('bad request', null, 400))
+      return onFinish.call(res, createError('bad request', null, 400))
     }
   }
 
   if (req.httpVersion !== '1.1' && req.httpVersion !== '2.0') {
-    return onFinish(createError('http version not supported', null, 505))
+    return onFinish.call(res, createError('http version not supported', null, 505))
   }
 
   if (proxyName && req.headers[HTTP2_HEADER_VIA]) {
     for (const name of req.headers[HTTP2_HEADER_VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
-        return onFinish(createError('loop detected', null, 508))
+        return onFinish.call(res, createError('loop detected', null, 508))
       }
     }
   }
@@ -66,12 +67,12 @@ function impl (req, resOrSocket, headOrNil, {
     req.setTimeout(timeout, onRequestTimeout)
   }
 
-  if (resOrSocket instanceof net.Socket) {
+  if (res instanceof net.Socket) {
     if (headOrNil && headOrNil.length) {
-      resOrSocket.unshift(headOrNil)
+      res.unshift(headOrNil)
     }
 
-    setupSocket(resOrSocket)
+    setupSocket(res)
   }
 
   const headers = getRequestHeaders(req)
@@ -97,15 +98,20 @@ function impl (req, resOrSocket, headOrNil, {
     onReq(req, options)
   }
 
-  req.__onFinish = onFinish
-
   const proxyReq = http.request(options)
-  proxyReq.__req = req
-  proxyReq.__res = resOrSocket
-  proxyReq.__onRes = onRes
-  proxyReq.__onFinish = onFinish
 
-  resOrSocket
+  proxyReq.__req = req
+  proxyReq.__res = res
+  proxyReq.__onRes = onRes
+
+  req.__res = res
+
+  res.__req = req
+  res.__res = res
+  res.__proxyReq = proxyReq
+  res.__callback = callback
+
+  res
     .on('finish', onFinish)
     .on('close', onFinish)
     .on('error', onFinish)
@@ -122,50 +128,54 @@ function impl (req, resOrSocket, headOrNil, {
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
+}
 
-  function onFinish (err, statusCode) {
-    if (proxyReq.aborted) {
-      return
-    }
+function onFinish (err, statusCode) {
+  const res = this.__res
 
-    proxyReq.abort()
+  assert(res, 'missing res object')
 
-    if (!err) {
-      return
-    }
+  if (res.__proxyReq.aborted) {
+    return
+  }
 
-    err.statusCode = statusCode || err.statusCode || 500
-    err.code = err.code || resOrSocket.code
+  res.__proxyReq.abort()
 
-    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-      err.statusCode = 503
-    } else if (/HPE_INVALID/.test(err.code)) {
-      err.statusCode = 502
-    } else if (err.code === 'ECONNRESET') {
-      err.statusCode = 502
-    }
+  if (!err) {
+    return
+  }
 
-    if (resOrSocket.headersSent !== false) {
-      resOrSocket.destroy()
-    } else {
-      resOrSocket.writeHead(statusCode)
-      resOrSocket.end()
-    }
+  err.statusCode = statusCode || err.statusCode || 500
+  err.code = err.code || res.code
 
-    if (callback) {
-      callback(err, req, resOrSocket)
-    } else {
-      throw err
-    }
+  if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+    err.statusCode = 503
+  } else if (/HPE_INVALID/.test(err.code)) {
+    err.statusCode = 502
+  } else if (err.code === 'ECONNRESET') {
+    err.statusCode = 502
+  }
+
+  if (res.headersSent !== false) {
+    res.destroy()
+  } else {
+    res.writeHead(statusCode)
+    res.end()
+  }
+
+  if (res.__callback) {
+    res.__callback(err, res.__req, res)
+  } else {
+    throw err
   }
 }
 
 function onRequestTimeout () {
-  this.__onFinish(createError('request timeout', null, 408))
+  onFinish.call(this, createError('request timeout', null, 408))
 }
 
 function onProxyTimeout () {
-  this.__onFinish(createError('gateway timeout', null, 504))
+  onFinish.call(this, createError('gateway timeout', null, 504))
 }
 
 function onProxyResponse (proxyRes) {
@@ -173,7 +183,7 @@ function onProxyResponse (proxyRes) {
     return
   }
 
-  proxyRes.__req = this
+  proxyRes.__res = this.__res
 
   proxyRes.on('aborted', onProxyResAborted)
 
@@ -196,21 +206,24 @@ function onProxyResponse (proxyRes) {
     this.__res.writeHead(this.__res.statusCode)
     proxyRes
       .on('end', function () {
-        this.__req.__res.addTrailers(this.trailers)
+        this.__res.addTrailers(this.trailers)
       })
-      .on('error', this.__onFinish)
+      .on('error', onFinish)
       .pipe(this.__res)
   }
 }
 
 function onProxyResAborted () {
-  this.__req.__onFinish(createError('socket hang up', 'ECONNRESET', 502))
+  onFinish.call(this, createError('socket hang up', 'ECONNRESET', 502))
 }
 
 function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   if (this.aborted) {
     return
   }
+
+  proxyRes.__res = this.__res
+  proxySocket.__res = this.__res
 
   setupSocket(proxySocket)
 
@@ -236,10 +249,10 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 
   this.__res.write(head)
 
-  proxyRes.on('error', this.__onFinish)
+  proxyRes.on('error', onFinish)
 
   proxySocket
-    .on('error', this.__onFinish)
+    .on('error', onFinish)
     .pipe(this.__res)
     .pipe(proxySocket)
 }
