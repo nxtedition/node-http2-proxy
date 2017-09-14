@@ -33,11 +33,11 @@ module.exports = {
 
 const kReq = Symbol('req')
 const kRes = Symbol('res')
-const kCallback = Symbol('callback')
+const kProxyCallback = Symbol('callback')
 const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
-const kOnRes = Symbol('onRes')
+const kOnProxyRes = Symbol('onProxyRes')
 
 function proxy (req, res, head, {
   hostname,
@@ -52,7 +52,7 @@ function proxy (req, res, head, {
 
   res[kReq] = req
   res[kRes] = res
-  res[kCallback] = callback
+  res[kProxyCallback] = callback
   res[kProxyReq] = null
   res[kProxyRes] = null
   res[kProxySocket] = null
@@ -61,7 +61,7 @@ function proxy (req, res, head, {
 
   if (!callback) {
     promise = new Promise((resolve, reject) => {
-      res[kCallback] = err => err ? reject(err) : resolve()
+      res[kProxyCallback] = err => err ? reject(err) : resolve()
     })
   }
 
@@ -126,7 +126,7 @@ function proxy (req, res, head, {
 
   proxyReq[kReq] = req
   proxyReq[kRes] = res
-  proxyReq[kOnRes] = onRes
+  proxyReq[kOnProxyRes] = onRes
 
   res[kProxyReq] = proxyReq
 
@@ -191,7 +191,7 @@ function onFinish (err, statusCode) {
     res.end()
   }
 
-  res[kCallback].call(null, err, res[kReq], res)
+  res[kProxyCallback].call(null, err, res[kReq], res)
 }
 
 function onRequestTimeout () {
@@ -225,8 +225,8 @@ function onProxyResponse (proxyRes) {
       this[kRes].setHeader(key, proxyRes.headers[key])
     }
 
-    if (this[kOnRes]) {
-      this[kOnRes](this[kReq], this[kRes])
+    if (this[kOnProxyRes]) {
+      this[kOnProxyRes](this[kReq], this[kRes])
     }
 
     this[kRes].writeHead(this[kRes].statusCode)
