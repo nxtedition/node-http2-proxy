@@ -184,10 +184,6 @@ function impl (req, resOrSocket, headOrNil, {
     proxyRes.on('aborted', () => onProxyError(createError('socket hang up', 'ECONNRESET', 502)))
 
     if (resOrSocket instanceof net.Socket) {
-      if (onRes) {
-        onRes(req, resOrSocket)
-      }
-
       if (!proxyRes.upgrade) {
         resOrSocket.end()
       }
