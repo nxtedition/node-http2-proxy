@@ -80,22 +80,22 @@ server.on('request', (req, res) => {
 
 ### API
 
-#### web (req, res, options, onProxyError)
+#### web (req, res, options, callback)
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
 - `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse).
 - `options`: See [Options](#options).
-- `onProxyError(err)`: Called on error.
+- `callback(err)`: Called on completion or error.
 
 See [`request`](https://nodejs.org/api/http.html#http_event_request)
 
-#### ws (req, socket, head, options, onProxyError)
+#### ws (req, socket, head, options, callback)
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage).
 - `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
 - `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer).
 - `options`: See [Options](#options).
-- `onProxyError(err)`: Called on error.
+- `callback(err)`: Called on completion or error.
 
 See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
 

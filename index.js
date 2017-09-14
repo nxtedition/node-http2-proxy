@@ -141,19 +141,17 @@ function onFinish (err, statusCode) {
 
   res.__proxyReq.abort()
 
-  if (!err) {
-    return
-  }
+  if (err) {
+    err.statusCode = statusCode || err.statusCode || 500
+    err.code = err.code || res.code
 
-  err.statusCode = statusCode || err.statusCode || 500
-  err.code = err.code || res.code
-
-  if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-    err.statusCode = 503
-  } else if (/HPE_INVALID/.test(err.code)) {
-    err.statusCode = 502
-  } else if (err.code === 'ECONNRESET') {
-    err.statusCode = 502
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+      err.statusCode = 503
+    } else if (/HPE_INVALID/.test(err.code)) {
+      err.statusCode = 502
+    } else if (err.code === 'ECONNRESET') {
+      err.statusCode = 502
+    }
   }
 
   if (res.headersSent !== false) {
