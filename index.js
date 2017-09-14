@@ -31,6 +31,12 @@ module.exports = {
   }
 }
 
+const kReq = Symbol('req')
+const kRes = Symbol('res')
+const kCallback = Symbol('callback')
+const kProxyReq = Symbol('proxyReq')
+const kOnRes = Symbol('onRes')
+
 function impl (req, res, headOrNil, {
   hostname,
   port,
@@ -40,17 +46,17 @@ function impl (req, res, headOrNil, {
   onReq,
   onRes
 }, callback) {
-  req.__res = res
+  req[kRes] = res
 
-  res.__req = req
-  res.__res = res
-  res.__callback = callback
+  res[kReq] = req
+  res[kRes] = res
+  res[kCallback] = callback
 
   let promise
 
   if (!callback) {
     promise = new Promise((resolve, reject) => {
-      res.__callback = err => err ? reject(err) : resolve()
+      res[kCallback] = err => err ? reject(err) : resolve()
     })
   }
 
@@ -114,11 +120,11 @@ function impl (req, res, headOrNil, {
 
   const proxyReq = http.request(options)
 
-  proxyReq.__req = req
-  proxyReq.__res = res
-  proxyReq.__onRes = onRes
+  proxyReq[kReq] = req
+  proxyReq[kRes] = res
+  proxyReq[kOnRes] = onRes
 
-  res.__proxyReq = proxyReq
+  res[kProxyReq] = proxyReq
 
   res
     .on('finish', onFinish)
@@ -142,15 +148,15 @@ function impl (req, res, headOrNil, {
 }
 
 function onFinish (err, statusCode) {
-  const res = this.__res
+  const res = this[kRes]
 
   assert(res, 'missing res object')
 
-  if (res.__proxyReq.aborted) {
+  if (res[kProxyReq].aborted) {
     return
   }
 
-  res.__proxyReq.abort()
+  res[kProxyReq].abort()
 
   if (err) {
     err.statusCode = statusCode || err.statusCode || 500
@@ -172,8 +178,8 @@ function onFinish (err, statusCode) {
     res.end()
   }
 
-  if (res.__callback) {
-    res.__callback(err, res.__req, res)
+  if (res[kCallback]) {
+    res[kCallback](err, res[kReq], res)
   } else {
     throw err
   }
@@ -192,33 +198,33 @@ function onProxyResponse (proxyRes) {
     return
   }
 
-  proxyRes.__res = this.__res
+  proxyRes[kRes] = this[kRes]
 
   proxyRes.on('aborted', onProxyResAborted)
 
-  if (this.__res instanceof net.Socket) {
+  if (this[kRes] instanceof net.Socket) {
     if (!proxyRes.upgrade) {
-      this.__res.end()
+      this[kRes].end()
     }
   } else {
     setupHeaders(proxyRes.headers)
 
-    this.__res.statusCode = proxyRes.statusCode
+    this[kRes].statusCode = proxyRes.statusCode
     for (const key of Object.keys(proxyRes.headers)) {
-      this.__res.setHeader(key, proxyRes.headers[key])
+      this[kRes].setHeader(key, proxyRes.headers[key])
     }
 
-    if (this.__onRes) {
-      this.__onRes(this.__req, this.__res)
+    if (this[kOnRes]) {
+      this[kOnRes](this[kReq], this[kRes])
     }
 
-    this.__res.writeHead(this.__res.statusCode)
+    this[kRes].writeHead(this[kRes].statusCode)
     proxyRes
       .on('end', function () {
-        this.__res.addTrailers(this.trailers)
+        this[kRes].addTrailers(this.trailers)
       })
       .on('error', onFinish)
-      .pipe(this.__res)
+      .pipe(this[kRes])
   }
 }
 
@@ -231,8 +237,8 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
     return
   }
 
-  proxyRes.__res = this.__res
-  proxySocket.__res = this.__res
+  proxyRes[kRes] = this[kRes]
+  proxySocket[kRes] = this[kRes]
 
   setupSocket(proxySocket)
 
@@ -256,13 +262,13 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 
   head += '\r\n\r\n'
 
-  this.__res.write(head)
+  this[kRes].write(head)
 
   proxyRes.on('error', onFinish)
 
   proxySocket
     .on('error', onFinish)
-    .pipe(this.__res)
+    .pipe(this[kRes])
     .pipe(proxySocket)
 }
 
