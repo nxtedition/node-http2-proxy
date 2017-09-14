@@ -350,6 +350,7 @@ function setupHeaders (headers) {
     }
   }
 
+  // Remove hop by hop headers
   delete headers[HTTP2_HEADER_CONNECTION]
   delete headers[HTTP2_HEADER_KEEP_ALIVE]
   delete headers[HTTP2_HEADER_TRANSFER_ENCODING]
