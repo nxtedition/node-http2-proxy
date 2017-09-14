@@ -128,6 +128,12 @@ function impl (req, res, headOrNil, {
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
+
+  if (!callback) {
+    return new Promise((resolve, reject) => {
+      res.__callback = err => err ? reject(err) : resolve()
+    })
+  }
 }
 
 function onFinish (err, statusCode) {
