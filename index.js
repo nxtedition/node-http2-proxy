@@ -37,7 +37,7 @@ const kCallback = Symbol('callback')
 const kProxyReq = Symbol('proxyReq')
 const kOnRes = Symbol('onRes')
 
-function impl (req, res, headOrNil, {
+function impl (req, res, head, {
   hostname,
   port,
   timeout,
@@ -88,8 +88,8 @@ function impl (req, res, headOrNil, {
   }
 
   if (res instanceof net.Socket) {
-    if (headOrNil && headOrNil.length) {
-      res.unshift(headOrNil)
+    if (head && head.length) {
+      res.unshift(head)
     }
 
     setupSocket(res)
