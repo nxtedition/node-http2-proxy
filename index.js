@@ -341,7 +341,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
     .pipe(proxySocket)
 }
 
-function getRequestHeaders (req, reqHeaders, reqSocket) {
+function getRequestHeaders (reqHeaders, reqSocket) {
   const host = reqHeaders[HTTP2_HEADER_AUTHORITY] || reqHeaders[HTTP2_HEADER_HOST]
   const upgrade = reqHeaders[HTTP2_HEADER_UPGRADE]
   const forwarded = reqHeaders[HTTP2_HEADER_FORWARDED]
