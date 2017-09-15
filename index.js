@@ -38,6 +38,7 @@ const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
+const kFinished = Symbol('finished')
 
 function proxy (req, res, head, {
   hostname,
@@ -56,6 +57,7 @@ function proxy (req, res, head, {
   res[kProxyReq] = null
   res[kProxyRes] = null
   res[kProxySocket] = null
+  res[kFinished] = false
 
   assert(typeof callback === 'function' || callback == null)
 
@@ -158,9 +160,11 @@ function onFinish (err, statusCode = 500) {
 
   assert(res)
 
-  if (!res[kProxyCallback]) {
+  if (res[kFinished]) {
     return
   }
+
+  res[kFinished] = true
 
   if (err) {
     err.statusCode = statusCode || err.statusCode || 500
