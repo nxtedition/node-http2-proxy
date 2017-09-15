@@ -153,7 +153,7 @@ function proxy (req, res, head, {
   return promise
 }
 
-function onFinish (err, statusCode) {
+function onFinish (err, statusCode = 500) {
   const res = this[kRes]
 
   assert(res)
@@ -186,6 +186,8 @@ function onFinish (err, statusCode) {
     } else if (/HPE_INVALID/.test(err.code)) {
       err.statusCode = 502
     }
+
+    statusCode = err.statusCode
   }
 
   if (res.headersSent !== false) {
