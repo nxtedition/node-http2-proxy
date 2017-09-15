@@ -55,11 +55,11 @@ function proxy (req, res, head, {
   onReq,
   onRes
 }, callback) {
-  let reqHeaders = req.respond
+  let reqHeaders = req.headers
   let reqMethod = req.method
   let reqUrl = req.url
 
-  if (req instanceof http2.Http2Stream) {
+  if (!reqHeaders) {
     reqHeaders = res
     reqMethod = reqHeaders[HTTP2_HEADER_METHOD]
     reqUrl = reqHeaders[HTTP2_HEADER_PATH]
@@ -198,7 +198,7 @@ function onFinish (err, statusCode = 500) {
   if (res.headersSent !== false) {
     res.destroy()
   } else {
-    if (res instanceof http2.Http2Stream) {
+    if (res.respond) {
       res.respond({ [HTTP2_HEADER_STATUS]: statusCode })
     } else {
       res.writeHead(statusCode)
@@ -255,7 +255,7 @@ function onProxyResponse (proxyRes) {
   } else {
     setupHeaders(proxyRes.headers)
 
-    if (res instanceof http2.Http2Stream) {
+    if (res.respond) {
       proxyRes.headers[HTTP2_HEADER_STATUS] = proxyRes.status
 
       if (this[kOnProxyRes]) {
