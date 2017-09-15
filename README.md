@@ -1,10 +1,10 @@
 # node-http2-proxy
 
-A simple high performance http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
+A simple high performance http/2 & http/1 to http/1 spec compliant proxy helper for Node.
 
 ### Features
 
-- Proxies HTTP 2, HTTP 1.1 and WebSocket
+- Proxies HTTP 2, HTTP 1 and WebSocket
 - Simple and high performance
 - [Hop by hop header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers).
 - [Connection header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection)
@@ -33,7 +33,7 @@ const server = http2.createServer({ allowHTTP1: true })
 server.listen(8000)
 ```
 
-#### Proxy HTTP/2, HTTP/1.1 and WebSocket
+#### Proxy HTTP/2, HTTP/1 and WebSocket
 
 ```js
 server.on('request', (req, res) => {
@@ -162,10 +162,10 @@ server.on('stream', (stream, headers) => {
 
 ```javascript
 server.on('stream', (stream, headers) => {
-  proxy.web(stream, { headers }, {
+  proxy.web(stream, headers, {
     hostname: 'localhost'
     port: 9000,
-    onReq: (stream, headers) => {
+    onReq: (stream, { headers }) => {
       headers['x-forwarded-for'] = stream.socket.remoteAddress
       headers['x-forwarded-proto'] = stream.socket.encrypted ? 'https' : 'http'
       headers['x-forwarded-host'] = stream.headers['host']
