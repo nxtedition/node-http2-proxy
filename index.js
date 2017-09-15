@@ -182,21 +182,6 @@ function onFinish (err, statusCode = 500) {
     return
   }
 
-  if (res[kProxyReq]) {
-    res[kProxyReq].abort()
-    res[kProxyReq] = null
-  }
-
-  if (res[kProxySocket]) {
-    res[kProxySocket].end()
-    res[kProxySocket] = null
-  }
-
-  if (res[kProxyRes]) {
-    res[kProxyRes].destroy()
-    res[kProxyRes] = null
-  }
-
   if (err) {
     err.statusCode = statusCode || err.statusCode || 500
     err.code = err.code || res.code
@@ -221,8 +206,25 @@ function onFinish (err, statusCode = 500) {
     res.end()
   }
 
-  res[kProxyCallback].call(null, err, res[kReq], res)
-  res[kProxyCallback] = null
+  if (res[kProxyCallback]) {
+    res[kProxyCallback].call(null, err, res[kReq], res)
+    res[kProxyCallback] = null
+  }
+
+  if (res[kProxyReq]) {
+    res[kProxyReq].abort()
+    res[kProxyReq] = null
+  }
+
+  if (res[kProxySocket]) {
+    res[kProxySocket].end()
+    res[kProxySocket] = null
+  }
+
+  if (res[kProxyRes]) {
+    res[kProxyRes].destroy()
+    res[kProxyRes] = null
+  }
 }
 
 function onRequestTimeout () {
