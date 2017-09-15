@@ -86,10 +86,6 @@ function proxy (req, res, head, {
     })
   }
 
-  if (req.httpVersion !== '1.1' && req.httpVersion !== '2.0') {
-    return onFinish.call(res, createError('http version not supported', null, 505))
-  }
-
   if (proxyName && reqHeaders[HTTP2_HEADER_VIA]) {
     for (const name of reqHeaders[HTTP2_HEADER_VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
@@ -337,7 +333,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
     .pipe(proxySocket)
 }
 
-function getRequestHeaders (reqHeaders, reqSocket) {
+function getRequestHeaders (req, reqHeaders, reqSocket) {
   const host = reqHeaders[HTTP2_HEADER_AUTHORITY] || reqHeaders[HTTP2_HEADER_HOST]
   const upgrade = reqHeaders[HTTP2_HEADER_UPGRADE]
   const forwarded = reqHeaders[HTTP2_HEADER_FORWARDED]
