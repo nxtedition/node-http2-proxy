@@ -278,10 +278,12 @@ function onProxyResponse (proxyRes) {
       }
 
       res.writeHead(res.statusCode)
+
+      proxyRes
+        .on('end', onProxyTrailers)
     }
 
     proxyRes
-      .on('end', onProxyTrailers)
       .on('error', onFinish)
       .pipe(res)
   }
