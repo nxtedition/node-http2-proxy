@@ -135,6 +135,8 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
 
 If HTTP/1 support is not required use the HTTP/2 `stream` API which has a lower overhead.
 
+Note that the `onRes` signature differs from HTTP/1 mode.
+
 ```js
 import http2 from 'http2'
 import proxy from 'http2-proxy'
