@@ -147,7 +147,7 @@ function proxy (req, res, head, {
 
   res[kProxyReq] = proxyReq
 
-  if (req instanceof http2.Http2Stream) {
+  if (res.response) {
     req
       .on('streamClosed', onFinish)
       .on('finish', onFinish)
