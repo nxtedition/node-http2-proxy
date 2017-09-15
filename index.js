@@ -326,8 +326,10 @@ function getRequestHeaders (req) {
     headers[HTTP2_HEADER_UPGRADE] = 'websocket'
   }
 
-  headers[HTTP2_HEADER_FORWARDED] = `by=${req.socket.localAddress}`
-  headers[HTTP2_HEADER_FORWARDED] += `; for=${req.socket.remoteAddress}`
+  if (req.socket) {
+    headers[HTTP2_HEADER_FORWARDED] = `by=${req.socket.localAddress}`
+    headers[HTTP2_HEADER_FORWARDED] += `; for=${req.socket.remoteAddress}`
+  }
 
   if (forwarded) {
     const expr = /for=\s*([^\s]+)/ig
@@ -344,7 +346,9 @@ function getRequestHeaders (req) {
     headers[HTTP2_HEADER_FORWARDED] += `; host=${host}`
   }
 
-  headers[HTTP2_HEADER_FORWARDED] += `; proto=${req.socket.encrypted ? 'https' : 'http'}`
+  if (req.socket) {
+    headers[HTTP2_HEADER_FORWARDED] += `; proto=${req.socket.encrypted ? 'https' : 'http'}`
+  }
 
   return headers
 }
