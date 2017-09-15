@@ -147,7 +147,7 @@ function proxy (req, res, head, {
 
   res[kProxyReq] = proxyReq
 
-  if (res.response) {
+  if (res.respond) {
     req
       .on('streamClosed', onFinish)
       .on('finish', onFinish)
