@@ -155,7 +155,6 @@ function proxy (req, res, head, {
       .on('finish', onFinish)
   } else {
     req
-      .on('aborted', onFinish)
       .on('close', onFinish)
     res
       .on('finish', onFinish)
@@ -164,6 +163,7 @@ function proxy (req, res, head, {
   }
 
   req
+    .on('aborted', onFinish)
     .on('error', onFinish)
     .pipe(proxyReq)
     .on('error', onFinish)
