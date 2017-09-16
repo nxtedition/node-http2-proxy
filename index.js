@@ -135,11 +135,15 @@ function proxy (req, res, head, {
     timeout: proxyTimeout
   }
 
+  let proxyReq
+
   if (onReq) {
-    onReq(req, options)
+    proxyReq = onReq(req, options)
   }
 
-  const proxyReq = http.request(options)
+  if (!proxyReq) {
+    proxyReq = http.request(options)
+  }
 
   proxyReq[kReq] = req
   proxyReq[kRes] = res
@@ -165,9 +169,7 @@ function proxy (req, res, head, {
     .on('error', onFinish)
     .pipe(proxyReq)
     .on('error', onFinish)
-    // NOTE http.ClientRequest emits "socket hang up" error when aborted
-    // before having received a response, i.e. there is no need to listen for
-    // proxyReq.on('aborted', ...).
+    .on('aborted', onProxyAborted)
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
