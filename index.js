@@ -1,6 +1,5 @@
 const http2 = require('http2')
 const http = require('http')
-const net = require('net')
 const assert = require('assert')
 
 const {
@@ -98,7 +97,7 @@ function proxy (req, res, head, {
     }
   }
 
-  if (res instanceof net.Socket) {
+  if (!res.writeHead && !res.respond) {
     if (reqMethod !== 'GET') {
       return onFinish.call(res, createError('method not allowed', null, 405))
     }
@@ -256,7 +255,7 @@ function onProxyResponse (proxyRes) {
 
   proxyRes.on('aborted', onProxyAborted)
 
-  if (res instanceof net.Socket) {
+  if (!res.writeHead && !res.respond) {
     if (!proxyRes.upgrade) {
       res.end()
     }
