@@ -260,7 +260,7 @@ function onProxyResponse (proxyRes) {
     setupHeaders(proxyRes.headers)
 
     if (res.respond) {
-      proxyRes.headers[HTTP2_HEADER_STATUS] = proxyRes.status
+      proxyRes.headers[HTTP2_HEADER_STATUS] = proxyRes.statusCode
 
       if (this[kOnProxyRes]) {
         this[kOnProxyRes](this[kReq], proxyRes.headers)
