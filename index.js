@@ -202,17 +202,17 @@ function onFinish (err, statusCode = 500) {
     }
 
     statusCode = err.statusCode
-  }
 
-  if (res.headersSent !== false) {
-    res.destroy()
-  } else {
-    if (res.respond) {
-      res.respond({ [HTTP2_HEADER_STATUS]: statusCode })
+    if (res.headersSent !== false) {
+      res.destroy()
     } else {
-      res.writeHead(statusCode)
+      if (res.respond) {
+        res.respond({ [HTTP2_HEADER_STATUS]: statusCode })
+      } else {
+        res.writeHead(statusCode)
+      }
+      res.end()
     }
-    res.end()
   }
 
   if (res[kProxyCallback]) {
