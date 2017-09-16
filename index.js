@@ -42,8 +42,10 @@ const kOnProxyRes = Symbol('onProxyRes')
 const kFinished = Symbol('finished')
 
 const RESPOND_OPTIONS = {
-  getTrailers: function () {
-    return this[kProxyRes].trailers
+  getTrailers (trailers) {
+    if (this[kProxyRes].trailers != null) {
+      Object.assign(trailers, this[kProxyRes].trailers)
+    }
   }
 }
 
@@ -293,7 +295,9 @@ function onProxyResponse (proxyRes) {
 }
 
 function onProxyTrailers () {
-  this[kRes].addTrailers(this.trailers)
+  if (this.trailers != null) {
+    this[kRes].addTrailers(this.trailers)
+  }
 }
 
 function onProxyAborted () {
