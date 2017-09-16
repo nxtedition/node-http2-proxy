@@ -34,6 +34,7 @@ module.exports = {
 
 const kReq = Symbol('req')
 const kRes = Symbol('res')
+const kSelf = Symbol('self')
 const kProxyCallback = Symbol('callback')
 const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
@@ -70,6 +71,7 @@ function proxy (req, res, head, {
     req[kRes] = res
   }
 
+  res[kSelf] = this
   res[kReq] = req
   res[kRes] = res
   res[kProxyCallback] = callback
@@ -138,7 +140,7 @@ function proxy (req, res, head, {
   let proxyReq
 
   if (onReq) {
-    proxyReq = onReq(req, options)
+    proxyReq = onReq.call(res[kSelf], req, options)
   }
 
   if (!proxyReq) {
@@ -213,7 +215,7 @@ function onFinish (err, statusCode = 500) {
   }
 
   if (res[kProxyCallback]) {
-    res[kProxyCallback].call(null, err, res[kReq], res)
+    res[kProxyCallback].call(res[kSelf], err, res[kReq], res)
     res[kProxyCallback] = null
   }
 
@@ -265,7 +267,7 @@ function onProxyResponse (proxyRes) {
       proxyRes.headers[HTTP2_HEADER_STATUS] = proxyRes.statusCode || proxyRes.status
 
       if (this[kOnProxyRes]) {
-        this[kOnProxyRes](this[kReq], proxyRes.headers)
+        this[kOnProxyRes].call(res[kSelf], this[kReq], proxyRes.headers)
       }
 
       res.respond(proxyRes.headers, RESPOND_OPTIONS)
@@ -276,7 +278,7 @@ function onProxyResponse (proxyRes) {
       }
 
       if (this[kOnProxyRes]) {
-        this[kOnProxyRes](this[kReq], res)
+        this[kOnProxyRes].call(res[kSelf], this[kReq], res)
       }
 
       res.writeHead(res.statusCode)
