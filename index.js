@@ -154,25 +154,19 @@ function proxy (req, res, head, {
 
   res[kProxyReq] = proxyReq
 
-  if (req === res) {
-    res
-      .on('streamClosed', onFinish)
-  } else {
-    res
-      .on('close', onFinish)
-      .on('error', onFinish)
-  }
-
   res
-    .on('finish', onFinish)
+    .on('close', onFinish)
+    .on('error', onFinish)
 
   req
-    .on('aborted', onFinish)
+    // XXX https://github.com/nodejs/node/issues/15303#issuecomment-330233428
+    .on('streamClosed', onFinish)
+    // .on('aborted', onFinish)
     .on('close', onFinish)
     .on('error', onFinish)
     .pipe(proxyReq)
     .on('error', onFinish)
-    .on('aborted', onProxyAborted)
+    // .on('aborted', onProxyAborted)
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
@@ -291,6 +285,7 @@ function onProxyResponse (proxyRes) {
     proxyRes
       .on('error', onFinish)
       .pipe(res)
+      .on('finish', onFinish)
   }
 }
 
