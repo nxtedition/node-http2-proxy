@@ -18,7 +18,8 @@ const {
   HTTP2_HEADER_VIA,
   HTTP2_HEADER_STATUS,
   // XXX https://github.com/nodejs/node/issues/15337
-  HTTP2_HEADER_FORWARDED = 'forwarded'
+  HTTP2_HEADER_FORWARDED = 'forwarded',
+  HTTP2_HEADER_TRAILER = 'trailer'
 } = http2.constants
 
 module.exports = {
@@ -39,14 +40,6 @@ const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
 const kFinished = Symbol('finished')
-
-const RESPOND_OPTIONS = {
-  getTrailers (trailers) {
-    if (this[kProxyRes].trailers != null) {
-      Object.assign(trailers, this[kProxyRes].trailers)
-    }
-  }
-}
 
 function proxy (req, res, head, {
   hostname,
@@ -266,7 +259,7 @@ function onProxyResponse (proxyRes) {
         this[kOnProxyRes].call(res[kSelf], this[kReq], proxyRes.headers)
       }
 
-      res.respond(proxyRes.headers, RESPOND_OPTIONS)
+      res.respond(proxyRes.headers)
     } else {
       res.statusCode = proxyRes.statusCode || proxyRes.status
       for (const key of Object.keys(proxyRes.headers)) {
@@ -278,21 +271,12 @@ function onProxyResponse (proxyRes) {
       }
 
       res.writeHead(res.statusCode)
-
-      proxyRes
-        .on('end', onProxyTrailers)
     }
 
     proxyRes
       .on('error', onFinish)
       .pipe(res)
       .on('finish', onFinish)
-  }
-}
-
-function onProxyTrailers () {
-  if (this.trailers != null) {
-    this[kRes].addTrailers(this.trailers)
   }
 }
 
@@ -408,6 +392,7 @@ function setupHeaders (headers) {
   delete headers[HTTP2_HEADER_UPGRADE]
   delete headers[HTTP2_HEADER_PROXY_AUTHORIZATION]
   delete headers[HTTP2_HEADER_PROXY_CONNECTION]
+  delete headers[HTTP2_HEADER_TRAILER]
   delete headers[HTTP2_HEADER_HTTP2_SETTINGS]
 
   return headers
