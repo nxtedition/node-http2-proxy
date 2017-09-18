@@ -98,7 +98,9 @@ function proxy (req, res, head, {
     }
   }
 
-  if (!res.writeHead && !res.respond) {
+  const isWebSocket = !res.writeHead && !res.respond
+
+  if (isWebSocket) {
     if (reqMethod !== 'GET') {
       return onFinish.call(res, createError('method not allowed', null, 405))
     }
@@ -118,7 +120,7 @@ function proxy (req, res, head, {
     req.setTimeout(timeout)
   }
 
-  const headers = getRequestHeaders(reqHeaders, req.socket)
+  const headers = getRequestHeaders(reqHeaders, req.socket, isWebSocket)
 
   if (proxyName) {
     if (headers[HTTP2_HEADER_VIA]) {
@@ -338,9 +340,8 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
     .pipe(proxySocket)
 }
 
-function getRequestHeaders (reqHeaders, reqSocket) {
+function getRequestHeaders (reqHeaders, reqSocket, isWebSocket) {
   const host = reqHeaders[HTTP2_HEADER_AUTHORITY] || reqHeaders[HTTP2_HEADER_HOST]
-  const upgrade = reqHeaders[HTTP2_HEADER_UPGRADE]
   const forwarded = reqHeaders[HTTP2_HEADER_FORWARDED]
 
   const headers = {}
@@ -352,7 +353,7 @@ function getRequestHeaders (reqHeaders, reqSocket) {
 
   setupHeaders(headers)
 
-  if (upgrade === 'websocket') {
+  if (isWebSocket) {
     headers[HTTP2_HEADER_CONNECTION] = 'upgrade'
     headers[HTTP2_HEADER_UPGRADE] = 'websocket'
   }
