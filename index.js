@@ -140,9 +140,8 @@ function proxy (req, res, head, {
 
   proxyReq[kReq] = req
   proxyReq[kRes] = res
-  proxyReq[kOnProxyRes] = onRes
-
   res[kProxyReq] = proxyReq
+  proxyReq[kOnProxyRes] = onRes
 
   res
     .on('close', onFinish)
