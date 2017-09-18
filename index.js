@@ -370,7 +370,7 @@ function getRequestHeaders (reqHeaders, reqSocket, isWebSocket) {
       if (!m) {
         break
       }
-      headers[HTTP2_HEADER_FORWARDED] += `; ${m[1]}`
+      headers[HTTP2_HEADER_FORWARDED] += `; for=${m[1]}`
     }
   }
 
