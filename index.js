@@ -341,9 +341,6 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 
   res.write(head)
 
-  proxyRes
-    .on('error', onFinish)
-
   proxySocket
     .on('error', onFinish)
     .pipe(res)
