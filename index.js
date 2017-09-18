@@ -36,7 +36,6 @@ const kRes = Symbol('res')
 const kSelf = Symbol('self')
 const kProxyCallback = Symbol('callback')
 const kProxyReq = Symbol('proxyReq')
-const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
 const kFinished = Symbol('finished')
@@ -69,7 +68,6 @@ function proxy (req, res, head, {
   res[kRes] = res
   res[kProxyCallback] = callback
   res[kProxyReq] = null
-  res[kProxyRes] = null
   res[kProxySocket] = null
   res[kFinished] = false
 
@@ -210,18 +208,18 @@ function onFinish (err, statusCode = 500) {
   }
 
   if (res[kProxyReq]) {
+    if (res[kProxyReq].res) {
+      res[kProxyReq].res.destroy()
+      res[kProxyReq].res = null
+    }
+
     res[kProxyReq].abort()
     res[kProxyReq] = null
-  }
 
-  if (res[kProxySocket]) {
-    res[kProxySocket].end()
-    res[kProxySocket] = null
-  }
-
-  if (res[kProxyRes]) {
-    res[kProxyRes].destroy()
-    res[kProxyRes] = null
+    if (res[kProxySocket]) {
+      res[kProxySocket].end()
+      res[kProxySocket] = null
+    }
   }
 }
 
@@ -240,7 +238,6 @@ function onProxyResponse (proxyRes) {
 
   const res = this[kRes]
 
-  res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
 
   proxyRes.on('aborted', onProxyAborted)
