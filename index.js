@@ -247,7 +247,6 @@ function onProxyResponse (proxyRes) {
   const res = this[kRes]
 
   res[kProxyRes] = proxyRes
-
   proxyRes[kRes] = res
 
   proxyRes.on('aborted', onProxyAborted)
@@ -308,9 +307,6 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   const res = this[kRes]
 
   res[kProxySocket] = proxySocket
-  res[kProxyRes] = proxyRes
-
-  proxyRes[kRes] = res
   proxySocket[kRes] = res
 
   setupSocket(proxySocket)
