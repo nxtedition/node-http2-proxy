@@ -154,21 +154,21 @@ function proxy (req, res, head, {
 
   res[kProxyReq] = proxyReq
 
-  if (res.respond) {
+  if (req === res) {
     res
-      .on('finish', onFinish)
       .on('streamClosed', onFinish)
   } else {
-    req
-      .on('close', onFinish)
     res
-      .on('finish', onFinish)
       .on('close', onFinish)
       .on('error', onFinish)
   }
 
+  res
+    .on('finish', onFinish)
+
   req
     .on('aborted', onFinish)
+    .on('close', onFinish)
     .on('error', onFinish)
     .pipe(proxyReq)
     .on('error', onFinish)
