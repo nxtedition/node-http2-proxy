@@ -116,7 +116,7 @@ function proxy (req, res, head, {
   }
 
   if (timeout != null) {
-    req.setTimeout(timeout, onRequestTimeout)
+    req.setTimeout(timeout)
   }
 
   const headers = getRequestHeaders(reqHeaders, req.socket)
@@ -164,6 +164,7 @@ function proxy (req, res, head, {
     // .on('aborted', onFinish)
     .on('close', onFinish)
     .on('error', onFinish)
+    .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
     .on('error', onFinish)
     // .on('aborted', onProxyAborted)
