@@ -198,7 +198,7 @@ function onFinish (err, statusCode = 500) {
 
     statusCode = err.statusCode
 
-    if (res.headersSent !== false) {
+    if (res.closed === true || res.headersSent !== false) {
       res.destroy()
     } else {
       if (res.respond) {
