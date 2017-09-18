@@ -38,7 +38,6 @@ const kProxyCallback = Symbol('callback')
 const kProxyReq = Symbol('proxyReq')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
-const kFinished = Symbol('finished')
 
 function proxy (req, res, head, {
   hostname,
@@ -69,7 +68,6 @@ function proxy (req, res, head, {
   res[kProxyCallback] = callback
   res[kProxyReq] = null
   res[kProxySocket] = null
-  res[kFinished] = false
 
   assert(typeof callback === 'function' || callback == null)
 
@@ -172,11 +170,12 @@ function onFinish (err, statusCode = 500) {
 
   assert(res)
 
-  if (res[kFinished]) {
+  if (!res[kProxyCallback]) {
     return
   }
 
-  res[kFinished] = true
+  const callback = res[kProxyCallback]
+  res[kProxyCallback] = null
 
   if (err) {
     err.statusCode = statusCode || err.statusCode || 500
@@ -202,25 +201,20 @@ function onFinish (err, statusCode = 500) {
     }
   }
 
-  if (res[kProxyCallback]) {
-    res[kProxyCallback].call(res[kSelf], err, res[kReq], res)
-    res[kProxyCallback] = null
+  if (res[kProxyReq].res) {
+    res[kProxyReq].res.destroy()
+    res[kProxyReq].res = null
   }
 
-  if (res[kProxyReq]) {
-    if (res[kProxyReq].res) {
-      res[kProxyReq].res.destroy()
-      res[kProxyReq].res = null
-    }
-
-    res[kProxyReq].abort()
-    res[kProxyReq] = null
-
-    if (res[kProxySocket]) {
-      res[kProxySocket].end()
-      res[kProxySocket] = null
-    }
+  if (res[kProxySocket]) {
+    res[kProxySocket].end()
+    res[kProxySocket] = null
   }
+
+  res[kProxyReq].abort()
+  res[kProxyReq] = null
+
+  callback.call(res[kSelf], err, res[kReq], res)
 }
 
 function onRequestTimeout () {
