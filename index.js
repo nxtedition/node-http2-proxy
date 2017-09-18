@@ -240,20 +240,23 @@ function onProxyResponse (proxyRes) {
       res.end()
     }
   } else {
-    setupHeaders(proxyRes.headers)
+    const headers = proxyRes.headers
+    const status = proxyRes.statusCode || proxyRes.status
+
+    setupHeaders(headers)
 
     if (res.respond) {
-      proxyRes.headers[HTTP2_HEADER_STATUS] = proxyRes.statusCode || proxyRes.status
+      headers[HTTP2_HEADER_STATUS] = status
 
       if (this[kOnProxyRes]) {
-        this[kOnProxyRes].call(res[kSelf], this[kReq], proxyRes.headers)
+        this[kOnProxyRes].call(res[kSelf], this[kReq], headers)
       }
 
-      res.respond(proxyRes.headers)
+      res.respond(headers)
     } else {
-      res.statusCode = proxyRes.statusCode || proxyRes.status
-      for (const key of Object.keys(proxyRes.headers)) {
-        res.setHeader(key, proxyRes.headers[key])
+      res.statusCode = status
+      for (const key of Object.keys(headers)) {
+        res.setHeader(key, headers[key])
       }
 
       if (this[kOnProxyRes]) {
@@ -292,9 +295,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 
   let head = 'HTTP/1.1 101 Switching Protocols'
 
-  for (const key of Object.keys(proxyRes.headers)) {
-    const value = proxyRes.headers[key]
-
+  for (const [ key, value ] of Object.entries(proxyRes.headers)) {
     if (!Array.isArray(value)) {
       head += '\r\n' + key + ': ' + value
     } else {
@@ -319,9 +320,9 @@ function getRequestHeaders (reqHeaders, reqSocket, isWebSocket) {
   const forwarded = reqHeaders[HTTP2_HEADER_FORWARDED]
 
   const headers = {}
-  for (const key of Object.keys(reqHeaders)) {
+  for (const [ key, value ] of Object.entries(reqHeaders)) {
     if (key.charAt(0) !== ':') {
-      headers[key] = reqHeaders[key]
+      headers[key] = value
     }
   }
 
