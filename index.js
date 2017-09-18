@@ -7,7 +7,6 @@ const {
   HTTP2_HEADER_UPGRADE,
   HTTP2_HEADER_AUTHORITY,
   HTTP2_HEADER_METHOD,
-  HTTP2_HEADER_SCHEME,
   HTTP2_HEADER_PATH,
   HTTP2_HEADER_HOST,
   HTTP2_HEADER_KEEP_ALIVE,
@@ -344,15 +343,16 @@ function getRequestHeaders (reqHeaders, reqSocket) {
   const upgrade = reqHeaders[HTTP2_HEADER_UPGRADE]
   const forwarded = reqHeaders[HTTP2_HEADER_FORWARDED]
 
-  const headers = setupHeaders(Object.assign({}, reqHeaders))
+  const headers = {}
+  for (const key of Object.keys(reqHeaders)) {
+    if (key.charAt(0) !== ':') {
+      headers[key] = reqHeaders[key]
+    }
+  }
 
-  // Remove pseudo headers
-  delete headers[HTTP2_HEADER_AUTHORITY]
-  delete headers[HTTP2_HEADER_METHOD]
-  delete headers[HTTP2_HEADER_PATH]
-  delete headers[HTTP2_HEADER_SCHEME]
+  setupHeaders(headers)
 
-  if (upgrade) {
+  if (upgrade === 'websocket') {
     headers[HTTP2_HEADER_CONNECTION] = 'upgrade'
     headers[HTTP2_HEADER_UPGRADE] = 'websocket'
   }
