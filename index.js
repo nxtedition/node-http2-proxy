@@ -161,7 +161,6 @@ function proxy (req, res, head, {
     .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
     .on('error', onError)
-    // .on('aborted', onProxyAborted)
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
