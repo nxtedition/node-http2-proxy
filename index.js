@@ -209,7 +209,6 @@ function onError (err) {
   if (res[kProxyReq]) {
     if (res[kProxyReq].res) {
       res[kProxyReq].res.destroy()
-      res[kProxyReq].res = null
     }
 
     if (res[kProxySocket]) {
