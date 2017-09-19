@@ -165,7 +165,7 @@ function proxy (req, res, head, {
   return promise
 }
 
-function onFinish (err, statusCode = 500) {
+function onFinish (err) {
   const res = this[kRes]
 
   assert(res)
@@ -178,7 +178,7 @@ function onFinish (err, statusCode = 500) {
   res[kProxyCallback] = null
 
   if (err) {
-    err.statusCode = statusCode || err.statusCode || err.status || 500
+    err.statusCode = err.statusCode || err.status || 500
     err.code = err.code || res.code
 
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
@@ -187,15 +187,13 @@ function onFinish (err, statusCode = 500) {
       err.statusCode = 502
     }
 
-    statusCode = err.statusCode
-
     if (res.closed === true || res.headersSent !== false) {
       res.destroy()
     } else {
       if (res.respond) {
-        res.respond({ [HTTP2_HEADER_STATUS]: statusCode })
+        res.respond({ [HTTP2_HEADER_STATUS]: err.statusCode })
       } else {
-        res.writeHead(statusCode)
+        res.writeHead(err.statusCode)
       }
       res.end()
     }
