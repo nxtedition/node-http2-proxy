@@ -178,7 +178,7 @@ function onFinish (err, statusCode = 500) {
   res[kProxyCallback] = null
 
   if (err) {
-    err.statusCode = statusCode || err.statusCode || 500
+    err.statusCode = statusCode || err.statusCode || err.status || 500
     err.code = err.code || res.code
 
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
