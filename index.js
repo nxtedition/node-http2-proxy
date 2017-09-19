@@ -69,7 +69,7 @@ function proxy (req, res, head, {
   res[kProxyReq] = null
   res[kProxySocket] = null
 
-  assert(typeof callback === 'function' || callback == null)
+  assert(typeof callback === 'function' || callback === undefined)
 
   let promise
 
@@ -154,7 +154,8 @@ function proxy (req, res, head, {
   req
     // XXX https://github.com/nodejs/node/issues/15303#issuecomment-330233428
     .on('streamClosed', onFinish)
-    // .on('aborted', onFinish)
+    // XXX https://github.com/nodejs/node/commit/8fa5fcc0ba74c23490c34da1a6c6e9a454280740
+    .on('aborted', onFinish)
     .on('close', onFinish)
     .on('error', onError)
     .on('timeout', onRequestTimeout)
