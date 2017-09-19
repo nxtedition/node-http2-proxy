@@ -24,10 +24,10 @@ const {
 
 module.exports = {
   ws (req, socket, head, options, callback) {
-    proxy(req, socket, head, options, callback)
+    proxy(req, socket, head || null, options, callback)
   },
   web (reqOrStream, resOrHeaders, options, callback) {
-    proxy(reqOrStream, resOrHeaders, null, options, callback)
+    proxy(reqOrStream, resOrHeaders, undefined, options, callback)
   }
 }
 
@@ -87,9 +87,9 @@ function proxy (req, res, head, {
     }
   }
 
-  const isWebSocket = !res.writeHead && !res.respond
+  const headers = getRequestHeaders(reqHeaders, req.socket)
 
-  if (isWebSocket) {
+  if (head !== undefined) {
     if (reqMethod !== 'GET') {
       return onFinish.call(res, createError('method not allowed', null, 405))
     }
@@ -103,13 +103,10 @@ function proxy (req, res, head, {
     }
 
     setupSocket(res)
-  }
 
-  if (timeout != null) {
-    req.setTimeout(timeout)
+    headers[HTTP2_HEADER_CONNECTION] = 'upgrade'
+    headers[HTTP2_HEADER_UPGRADE] = 'websocket'
   }
-
-  const headers = getRequestHeaders(reqHeaders, req.socket, isWebSocket)
 
   if (proxyName) {
     if (headers[HTTP2_HEADER_VIA]) {
@@ -117,6 +114,10 @@ function proxy (req, res, head, {
     } else {
       headers[HTTP2_HEADER_VIA] = proxyName
     }
+  }
+
+  if (timeout != null) {
+    req.setTimeout(timeout)
   }
 
   const options = {
@@ -315,7 +316,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
     .pipe(proxySocket)
 }
 
-function getRequestHeaders (reqHeaders, reqSocket, isWebSocket) {
+function getRequestHeaders (reqHeaders, reqSocket) {
   const host = reqHeaders[HTTP2_HEADER_AUTHORITY] || reqHeaders[HTTP2_HEADER_HOST]
   const forwarded = reqHeaders[HTTP2_HEADER_FORWARDED]
 
@@ -327,11 +328,6 @@ function getRequestHeaders (reqHeaders, reqSocket, isWebSocket) {
   }
 
   setupHeaders(headers)
-
-  if (isWebSocket) {
-    headers[HTTP2_HEADER_CONNECTION] = 'upgrade'
-    headers[HTTP2_HEADER_UPGRADE] = 'websocket'
-  }
 
   if (reqSocket) {
     headers[HTTP2_HEADER_FORWARDED] = `by=${reqSocket.localAddress}`
