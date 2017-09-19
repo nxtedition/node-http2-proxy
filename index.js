@@ -82,7 +82,7 @@ function proxy (req, res, head, {
   if (proxyName && reqHeaders[HTTP2_HEADER_VIA]) {
     for (const name of reqHeaders[HTTP2_HEADER_VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
-        return onFinish.call(res, createError('loop detected', null, 508))
+        return onError.call(res, createError('loop detected', null, 508))
       }
     }
   }
@@ -91,11 +91,11 @@ function proxy (req, res, head, {
 
   if (head !== undefined) {
     if (reqMethod !== 'GET') {
-      return onFinish.call(res, createError('method not allowed', null, 405))
+      return onError.call(res, createError('method not allowed', null, 405))
     }
 
     if (sanitize(reqHeaders[HTTP2_HEADER_UPGRADE]) !== 'websocket') {
-      return onFinish.call(res, createError('bad request', null, 400))
+      return onError.call(res, createError('bad request', null, 400))
     }
 
     if (head && head.length) {
@@ -146,17 +146,17 @@ function proxy (req, res, head, {
 
   res
     .on('close', onFinish)
-    .on('error', onFinish)
+    .on('error', onError)
 
   req
     // XXX https://github.com/nodejs/node/issues/15303#issuecomment-330233428
     .on('streamClosed', onFinish)
     // .on('aborted', onFinish)
     .on('close', onFinish)
-    .on('error', onFinish)
+    .on('error', onError)
     .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
-    .on('error', onFinish)
+    .on('error', onError)
     // .on('aborted', onProxyAborted)
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
@@ -165,7 +165,11 @@ function proxy (req, res, head, {
   return promise
 }
 
-function onFinish (err) {
+function onFinish () {
+  onError.call(this)
+}
+
+function onError (err) {
   const res = this[kRes]
 
   assert(res)
@@ -216,11 +220,11 @@ function onFinish (err) {
 }
 
 function onRequestTimeout () {
-  onFinish.call(this, createError('request timeout', null, 408))
+  onError.call(this, createError('request timeout', null, 408))
 }
 
 function onProxyTimeout () {
-  onFinish.call(this, createError('gateway timeout', null, 504))
+  onError.call(this, createError('gateway timeout', null, 504))
 }
 
 function onProxyResponse (proxyRes) {
@@ -266,14 +270,14 @@ function onProxyResponse (proxyRes) {
     }
 
     proxyRes
-      .on('error', onFinish)
+      .on('error', onError)
       .pipe(res)
       .on('finish', onFinish)
   }
 }
 
 function onProxyAborted () {
-  onFinish.call(this, createError('socket hang up', 'ECONNRESET', 502))
+  onError.call(this, createError('socket hang up', 'ECONNRESET', 502))
 }
 
 function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
@@ -309,7 +313,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   res.write(head)
 
   proxySocket
-    .on('error', onFinish)
+    .on('error', onError)
     .pipe(res)
     .pipe(proxySocket)
 }
