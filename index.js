@@ -206,18 +206,20 @@ function onError (err) {
     }
   }
 
-  if (res[kProxyReq].res) {
-    res[kProxyReq].res.destroy()
-    res[kProxyReq].res = null
-  }
+  if (res[kProxyReq]) {
+    if (res[kProxyReq].res) {
+      res[kProxyReq].res.destroy()
+      res[kProxyReq].res = null
+    }
 
-  if (res[kProxySocket]) {
-    res[kProxySocket].end()
-    res[kProxySocket] = null
-  }
+    if (res[kProxySocket]) {
+      res[kProxySocket].end()
+      res[kProxySocket] = null
+    }
 
-  res[kProxyReq].abort()
-  res[kProxyReq] = null
+    res[kProxyReq].abort()
+    res[kProxyReq] = null
+  }
 
   callback.call(res[kSelf], err, res[kReq], res)
 }
