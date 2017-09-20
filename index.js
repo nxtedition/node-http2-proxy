@@ -232,11 +232,12 @@ function onProxyTimeout () {
 }
 
 function onProxyResponse (proxyRes) {
-  if (this.aborted) {
+  const res = this[kRes]
+
+  if (!res[kProxyCallback] || res.closed === true || this.aborted) {
+    this.abort()
     return
   }
-
-  const res = this[kRes]
 
   proxyRes[kRes] = res
 
@@ -285,11 +286,12 @@ function onProxyAborted () {
 }
 
 function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
-  if (this.aborted) {
+  const res = this[kRes]
+
+  if (!res[kProxyCallback] || res.closed === true || this.aborted) {
+    this.abort()
     return
   }
-
-  const res = this[kRes]
 
   res[kProxySocket] = proxySocket
   proxySocket[kRes] = res
