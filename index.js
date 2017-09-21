@@ -194,7 +194,12 @@ function onError (err) {
       err.statusCode = 502
     }
 
-    if (res.closed === true || res.headersSent !== false) {
+    if (
+      res.headersSent !== false ||
+      res.closed === true ||
+      res.finished === true ||
+      res.writable === false
+    ) {
       res.destroy()
     } else {
       if (res.respond) {
