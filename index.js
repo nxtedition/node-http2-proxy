@@ -1,26 +1,22 @@
-const http2 = require('http2')
 const http = require('http')
 const assert = require('assert')
 
-const {
-  HTTP2_HEADER_CONNECTION,
-  HTTP2_HEADER_UPGRADE,
-  HTTP2_HEADER_AUTHORITY,
-  HTTP2_HEADER_METHOD,
-  HTTP2_HEADER_PATH,
-  HTTP2_HEADER_HOST,
-  HTTP2_HEADER_KEEP_ALIVE,
-  HTTP2_HEADER_PROXY_CONNECTION,
-  HTTP2_HEADER_TRANSFER_ENCODING,
-  HTTP2_HEADER_TE,
-  HTTP2_HEADER_PROXY_AUTHORIZATION,
-  HTTP2_HEADER_HTTP2_SETTINGS,
-  HTTP2_HEADER_VIA,
-  HTTP2_HEADER_STATUS,
-  // XXX https://github.com/nodejs/node/issues/15337
-  HTTP2_HEADER_FORWARDED = 'forwarded',
-  HTTP2_HEADER_TRAILER = 'trailer'
-} = http2.constants
+const HTTP2_HEADER_CONNECTION = 'connection'
+const HTTP2_HEADER_FORWARDED = 'forwarded'
+const HTTP2_HEADER_HOST = 'host'
+const HTTP2_HEADER_KEEP_ALIVE = 'keep-alive'
+const HTTP2_HEADER_PROXY_AUTHORIZATION = 'proxy-authorization'
+const HTTP2_HEADER_PROXY_CONNECTION = 'proxy-connection'
+const HTTP2_HEADER_TE = 'te'
+const HTTP2_HEADER_TRAILER = 'trailer'
+const HTTP2_HEADER_TRANSFER_ENCODING = 'transfer-encoding'
+const HTTP2_HEADER_UPGRADE = 'upgrade'
+const HTTP2_HEADER_VIA = 'via'
+const HTTP2_HEADER_AUTHORITY = ':authority'
+const HTTP2_HEADER_HTTP2_SETTINGS = 'http2-settings'
+const HTTP2_HEADER_METHOD = ':method'
+const HTTP2_HEADER_PATH = ':path'
+const HTTP2_HEADER_STATUS = ':status'
 
 module.exports = {
   ws (req, socket, head, options, callback) {
