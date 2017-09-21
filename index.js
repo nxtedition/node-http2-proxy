@@ -1,5 +1,4 @@
 const http = require('http')
-const assert = require('assert')
 
 const HTTP2_HEADER_CONNECTION = 'connection'
 const HTTP2_HEADER_FORWARDED = 'forwarded'
@@ -64,8 +63,6 @@ function proxy (req, res, head, {
   res[kProxyCallback] = callback
   res[kProxyReq] = null
   res[kProxySocket] = null
-
-  assert(typeof callback === 'function' || callback === undefined)
 
   let promise
 
@@ -170,8 +167,6 @@ function onFinish () {
 
 function onError (err) {
   const res = this[kRes]
-
-  assert(res)
 
   if (!res[kProxyCallback]) {
     return
