@@ -227,7 +227,12 @@ function onProxyTimeout () {
 function onProxyResponse (proxyRes) {
   const res = this[kRes]
 
-  if (!res[kProxyCallback] || res.closed === true || this.aborted) {
+  if (
+    res[kProxyCallback] === null ||
+    res.writable === false ||
+    res.finished === true ||
+    this.aborted === true
+  ) {
     this.abort()
     return
   }
@@ -281,7 +286,12 @@ function onProxyAborted () {
 function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   const res = this[kRes]
 
-  if (!res[kProxyCallback] || res.closed === true || this.aborted) {
+  if (
+    res[kProxyCallback] === null ||
+    res.writable === false ||
+    res.finished === true ||
+    this.aborted === true
+  ) {
     this.abort()
     return
   }
