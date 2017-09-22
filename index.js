@@ -81,7 +81,8 @@ function proxy (req, res, head, {
     }
   }
 
-  const headers = getRequestHeaders(reqHeaders, req.socket)
+  const socket = req.session ? req.session.socket : req.socket
+  const headers = getRequestHeaders(reqHeaders, socket)
 
   if (head !== undefined) {
     if (reqMethod !== 'GET') {
