@@ -13,16 +13,13 @@ const UPGRADE = 'upgrade'
 const VIA = 'via'
 const AUTHORITY = ':authority'
 const HTTP2_SETTINGS = 'http2-settings'
-const METHOD = ':method'
-const PATH = ':path'
-const STATUS = ':status'
 
 module.exports = {
   ws (req, socket, head, options, callback) {
     proxy(req, socket, head || null, options, callback)
   },
-  web (reqOrStream, resOrHeaders, options, callback) {
-    proxy(reqOrStream, resOrHeaders, undefined, options, callback)
+  web (req, res, options, callback) {
+    proxy(req, res, undefined, options, callback)
   }
 }
 
@@ -43,19 +40,7 @@ function proxy (req, res, head, {
   onReq,
   onRes
 }, callback) {
-  let reqHeaders = req.headers
-  let reqMethod = req.method
-  let reqUrl = req.url
-
-  if (!reqHeaders) {
-    reqHeaders = res
-    reqMethod = reqHeaders[METHOD]
-    reqUrl = reqHeaders[PATH]
-
-    res = req
-  } else {
-    req[kRes] = res
-  }
+  req[kRes] = res
 
   res[kSelf] = this
   res[kReq] = req
@@ -72,8 +57,8 @@ function proxy (req, res, head, {
     })
   }
 
-  if (proxyName && reqHeaders[VIA]) {
-    for (const name of reqHeaders[VIA].split(',')) {
+  if (proxyName && req.headers[VIA]) {
+    for (const name of req.headers[VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
         process.nextTick(onError.call, res, createError('loop detected', null, 508))
         return promise
@@ -81,16 +66,15 @@ function proxy (req, res, head, {
     }
   }
 
-  const socket = req.session ? req.session.socket : req.socket
-  const headers = getRequestHeaders(reqHeaders, socket)
+  const headers = getRequestHeaders(req.headers, req.socket)
 
   if (head !== undefined) {
-    if (reqMethod !== 'GET') {
+    if (req.method !== 'GET') {
       process.nextTick(onError.call, res, createError('method not allowed', null, 405))
       return promise
     }
 
-    if (sanitize(reqHeaders[UPGRADE]) !== 'websocket') {
+    if (sanitize(req.headers[UPGRADE]) !== 'websocket') {
       process.nextTick(onError.call, res, createError('bad request', null, 400))
       return promise
     }
@@ -118,10 +102,10 @@ function proxy (req, res, head, {
   }
 
   const options = {
-    method: reqMethod,
+    method: req.method,
     hostname,
     port,
-    path: reqUrl,
+    path: req.url,
     headers,
     timeout: proxyTimeout
   }
@@ -146,8 +130,6 @@ function proxy (req, res, head, {
     .on('error', onError)
 
   req
-    // XXX https://github.com/nodejs/node/issues/15303#issuecomment-330233428
-    .on('streamClosed', onFinish)
     .on('close', onFinish)
     .on('error', onError)
     .on('timeout', onRequestTimeout)
@@ -175,7 +157,7 @@ function onError (err) {
   res[kProxyCallback] = null
 
   if (err) {
-    err.statusCode = err.statusCode || err.status || 500
+    err.statusCode = err.statusCode || 500
     err.code = err.code || res.code
 
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
@@ -191,11 +173,7 @@ function onError (err) {
     ) {
       res.destroy()
     } else {
-      if (res.respond) {
-        res.respond({ [STATUS]: err.statusCode })
-      } else {
-        res.writeHead(err.statusCode)
-      }
+      res.writeHead(err.statusCode)
       res.end()
     }
   }
@@ -241,36 +219,26 @@ function onProxyResponse (proxyRes) {
 
   proxyRes.on('aborted', onProxyAborted)
 
-  if (!res.writeHead && !res.respond) {
+  if (!res.writeHead) {
     if (!proxyRes.upgrade) {
       res.end()
     }
   } else {
     const headers = proxyRes.headers
-    const status = proxyRes.statusCode || proxyRes.status
+    const status = proxyRes.statusCode
 
     setupHeaders(headers)
 
-    if (res.respond) {
-      headers[STATUS] = status
-
-      if (this[kOnProxyRes]) {
-        this[kOnProxyRes].call(res[kSelf], this[kReq], headers)
-      }
-
-      res.respond(headers)
-    } else {
-      res.statusCode = status
-      for (const key of Object.keys(headers)) {
-        res.setHeader(key, headers[key])
-      }
-
-      if (this[kOnProxyRes]) {
-        this[kOnProxyRes].call(res[kSelf], this[kReq], res)
-      }
-
-      res.writeHead(res.statusCode)
+    res.statusCode = status
+    for (const key of Object.keys(headers)) {
+      res.setHeader(key, headers[key])
     }
+
+    if (this[kOnProxyRes]) {
+      this[kOnProxyRes].call(res[kSelf], this[kReq], res)
+    }
+
+    res.writeHead(res.statusCode)
 
     proxyRes
       .on('error', onError)
