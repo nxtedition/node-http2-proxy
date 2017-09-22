@@ -233,7 +233,6 @@ function onProxyResponse (proxyRes) {
     res.finished === true ||
     this.aborted === true
   ) {
-    this.abort()
     return
   }
 
@@ -292,7 +291,6 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
     res.finished === true ||
     this.aborted === true
   ) {
-    this.abort()
     return
   }
 
