@@ -187,7 +187,6 @@ function onError (err) {
 
     if (
       res.headersSent !== false ||
-      res.closed === true ||
       res.finished === true ||
       res.writable === false
     ) {
