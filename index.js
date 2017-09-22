@@ -1,21 +1,21 @@
 const http = require('http')
 
-const HTTP2_HEADER_CONNECTION = 'connection'
-const HTTP2_HEADER_FORWARDED = 'forwarded'
-const HTTP2_HEADER_HOST = 'host'
-const HTTP2_HEADER_KEEP_ALIVE = 'keep-alive'
-const HTTP2_HEADER_PROXY_AUTHORIZATION = 'proxy-authorization'
-const HTTP2_HEADER_PROXY_CONNECTION = 'proxy-connection'
-const HTTP2_HEADER_TE = 'te'
-const HTTP2_HEADER_TRAILER = 'trailer'
-const HTTP2_HEADER_TRANSFER_ENCODING = 'transfer-encoding'
-const HTTP2_HEADER_UPGRADE = 'upgrade'
-const HTTP2_HEADER_VIA = 'via'
-const HTTP2_HEADER_AUTHORITY = ':authority'
-const HTTP2_HEADER_HTTP2_SETTINGS = 'http2-settings'
-const HTTP2_HEADER_METHOD = ':method'
-const HTTP2_HEADER_PATH = ':path'
-const HTTP2_HEADER_STATUS = ':status'
+const CONNECTION = 'connection'
+const FORWARDED = 'forwarded'
+const HOST = 'host'
+const KEEP_ALIVE = 'keep-alive'
+const PROXY_AUTHORIZATION = 'proxy-authorization'
+const PROXY_CONNECTION = 'proxy-connection'
+const TE = 'te'
+const TRAILER = 'trailer'
+const TRANSFER_ENCODING = 'transfer-encoding'
+const UPGRADE = 'upgrade'
+const VIA = 'via'
+const AUTHORITY = ':authority'
+const HTTP2_SETTINGS = 'http2-settings'
+const METHOD = ':method'
+const PATH = ':path'
+const STATUS = ':status'
 
 module.exports = {
   ws (req, socket, head, options, callback) {
@@ -49,8 +49,8 @@ function proxy (req, res, head, {
 
   if (!reqHeaders) {
     reqHeaders = res
-    reqMethod = reqHeaders[HTTP2_HEADER_METHOD]
-    reqUrl = reqHeaders[HTTP2_HEADER_PATH]
+    reqMethod = reqHeaders[METHOD]
+    reqUrl = reqHeaders[PATH]
 
     res = req
   } else {
@@ -72,8 +72,8 @@ function proxy (req, res, head, {
     })
   }
 
-  if (proxyName && reqHeaders[HTTP2_HEADER_VIA]) {
-    for (const name of reqHeaders[HTTP2_HEADER_VIA].split(',')) {
+  if (proxyName && reqHeaders[VIA]) {
+    for (const name of reqHeaders[VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
         process.nextTick(onError.call, res, createError('loop detected', null, 508))
         return promise
@@ -89,7 +89,7 @@ function proxy (req, res, head, {
       return promise
     }
 
-    if (sanitize(reqHeaders[HTTP2_HEADER_UPGRADE]) !== 'websocket') {
+    if (sanitize(reqHeaders[UPGRADE]) !== 'websocket') {
       process.nextTick(onError.call, res, createError('bad request', null, 400))
       return promise
     }
@@ -100,15 +100,15 @@ function proxy (req, res, head, {
 
     setupSocket(res)
 
-    headers[HTTP2_HEADER_CONNECTION] = 'upgrade'
-    headers[HTTP2_HEADER_UPGRADE] = 'websocket'
+    headers[CONNECTION] = 'upgrade'
+    headers[UPGRADE] = 'websocket'
   }
 
   if (proxyName) {
-    if (headers[HTTP2_HEADER_VIA]) {
-      headers[HTTP2_HEADER_VIA] += `,${proxyName}`
+    if (headers[VIA]) {
+      headers[VIA] += `,${proxyName}`
     } else {
-      headers[HTTP2_HEADER_VIA] = proxyName
+      headers[VIA] = proxyName
     }
   }
 
@@ -193,7 +193,7 @@ function onError (err) {
       res.destroy()
     } else {
       if (res.respond) {
-        res.respond({ [HTTP2_HEADER_STATUS]: err.statusCode })
+        res.respond({ [STATUS]: err.statusCode })
       } else {
         res.writeHead(err.statusCode)
       }
@@ -249,7 +249,7 @@ function onProxyResponse (proxyRes) {
     setupHeaders(headers)
 
     if (res.respond) {
-      headers[HTTP2_HEADER_STATUS] = status
+      headers[STATUS] = status
 
       if (this[kOnProxyRes]) {
         this[kOnProxyRes].call(res[kSelf], this[kReq], headers)
@@ -320,8 +320,8 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 }
 
 function getRequestHeaders (reqHeaders, reqSocket) {
-  const host = reqHeaders[HTTP2_HEADER_AUTHORITY] || reqHeaders[HTTP2_HEADER_HOST]
-  const forwarded = reqHeaders[HTTP2_HEADER_FORWARDED]
+  const host = reqHeaders[AUTHORITY] || reqHeaders[HOST]
+  const forwarded = reqHeaders[FORWARDED]
 
   const headers = {}
   for (const [ key, value ] of Object.entries(reqHeaders)) {
@@ -333,8 +333,8 @@ function getRequestHeaders (reqHeaders, reqSocket) {
   setupHeaders(headers)
 
   if (reqSocket) {
-    headers[HTTP2_HEADER_FORWARDED] = `by=${reqSocket.localAddress}`
-    headers[HTTP2_HEADER_FORWARDED] += `; for=${reqSocket.remoteAddress}`
+    headers[FORWARDED] = `by=${reqSocket.localAddress}`
+    headers[FORWARDED] += `; for=${reqSocket.remoteAddress}`
   }
 
   if (forwarded) {
@@ -344,16 +344,16 @@ function getRequestHeaders (reqHeaders, reqSocket) {
       if (!m) {
         break
       }
-      headers[HTTP2_HEADER_FORWARDED] += `; for=${m[1]}`
+      headers[FORWARDED] += `; for=${m[1]}`
     }
   }
 
   if (host) {
-    headers[HTTP2_HEADER_FORWARDED] += `; host=${host}`
+    headers[FORWARDED] += `; host=${host}`
   }
 
   if (reqSocket) {
-    headers[HTTP2_HEADER_FORWARDED] += `; proto=${reqSocket.encrypted ? 'https' : 'http'}`
+    headers[FORWARDED] += `; proto=${reqSocket.encrypted ? 'https' : 'http'}`
   }
 
   return headers
@@ -366,7 +366,7 @@ function setupSocket (socket) {
 }
 
 function setupHeaders (headers) {
-  const connection = sanitize(headers[HTTP2_HEADER_CONNECTION])
+  const connection = sanitize(headers[CONNECTION])
 
   if (connection && connection !== 'close' && connection !== 'keep-alive') {
     for (const name of connection.split(',')) {
@@ -375,15 +375,15 @@ function setupHeaders (headers) {
   }
 
   // Remove hop by hop headers
-  delete headers[HTTP2_HEADER_CONNECTION]
-  delete headers[HTTP2_HEADER_KEEP_ALIVE]
-  delete headers[HTTP2_HEADER_TRANSFER_ENCODING]
-  delete headers[HTTP2_HEADER_TE]
-  delete headers[HTTP2_HEADER_UPGRADE]
-  delete headers[HTTP2_HEADER_PROXY_AUTHORIZATION]
-  delete headers[HTTP2_HEADER_PROXY_CONNECTION]
-  delete headers[HTTP2_HEADER_TRAILER]
-  delete headers[HTTP2_HEADER_HTTP2_SETTINGS]
+  delete headers[CONNECTION]
+  delete headers[KEEP_ALIVE]
+  delete headers[TRANSFER_ENCODING]
+  delete headers[TE]
+  delete headers[UPGRADE]
+  delete headers[PROXY_AUTHORIZATION]
+  delete headers[PROXY_CONNECTION]
+  delete headers[TRAILER]
+  delete headers[HTTP2_SETTINGS]
 
   return headers
 }
