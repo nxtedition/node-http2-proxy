@@ -224,14 +224,11 @@ function onProxyResponse (proxyRes) {
       res.end()
     }
   } else {
-    const headers = proxyRes.headers
-    const status = proxyRes.statusCode
+    setupHeaders(proxyRes.headers)
 
-    setupHeaders(headers)
-
-    res.statusCode = status
-    for (const key of Object.keys(headers)) {
-      res.setHeader(key, headers[key])
+    res.statusCode = proxyRes.statusCode
+    for (const [ key, value ] of Object.entries(proxyRes.headers)) {
+      res.setHeader(key, value)
     }
 
     if (this[kOnProxyRes]) {
