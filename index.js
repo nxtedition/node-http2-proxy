@@ -235,7 +235,9 @@ function onProxyResponse (proxyRes) {
       this[kOnProxyRes].call(res[kSelf], this[kReq], res)
     }
 
-    res.writeHead(res.statusCode)
+    if (res.headersSent === false) {
+      res.writeHead(res.statusCode)
+    }
 
     proxyRes
       .on('error', onError)
