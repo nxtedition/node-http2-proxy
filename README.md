@@ -19,7 +19,7 @@ $ npm install http2-proxy
 
 ### Notes
 
-`http2-proxy` requires node **v8.6.0** or newer with `http2` enabled. Pass the `--expose-http2` option when starting node **v8.x.x**. While `http2` is still experimental in node it is not recommended to use it in production! Wait for node *v9.0.0*.
+`http2-proxy` requires at least node **v8.7.0**.
 
 ### HTTP/1 API
 
