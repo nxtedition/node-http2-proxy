@@ -168,8 +168,9 @@ function onError (err) {
 
     if (
       res.headersSent !== false ||
-      res.finished === true ||
-      res.writable === false
+      res.writable === false ||
+      // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
+      res.finished === true
     ) {
       res.destroy()
     } else {
@@ -255,9 +256,10 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 
   if (
     res[kProxyCallback] === null ||
+    this.aborted === true ||
     res.writable === false ||
-    res.finished === true ||
-    this.aborted === true
+    // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
+    res.finished === true
   ) {
     return
   }
@@ -342,7 +344,7 @@ function setupSocket (socket) {
 function setupHeaders (headers) {
   const connection = sanitize(headers[CONNECTION])
 
-  if (connection && connection !== 'close' && connection !== 'keep-alive') {
+  if (connection && connection !== CONNECTION && connection !== KEEP_ALIVE) {
     for (const name of connection.split(',')) {
       delete headers[name.trim()]
     }
