@@ -172,6 +172,9 @@ function onError (err) {
       // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
       res.finished === true
     ) {
+      if (res.stream) {
+        res.stream.rstWithCancel()
+      }
       res.destroy()
     } else {
       res.writeHead(err.statusCode)
