@@ -91,9 +91,9 @@ function proxy (req, res, head, {
 
   if (proxyName) {
     if (headers[VIA]) {
-      headers[VIA] += `,${proxyName}`
+      headers[VIA] += `,${req.httpVersion} ${proxyName}`
     } else {
-      headers[VIA] = proxyName
+      headers[VIA] = `${req.httpVersion} ${proxyName}`
     }
   }
 
