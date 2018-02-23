@@ -19,7 +19,7 @@ $ npm install http2-proxy
 
 ### Notes
 
-`http2-proxy` requires at least node **v8.7.0**.
+`http2-proxy` requires at least node **v9.5.0**.
 
 ### HTTP/1 API
 
