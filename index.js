@@ -237,6 +237,10 @@ function onProxyResponse (proxyRes) {
   proxyRes.on('aborted', onProxyAborted)
 
   if (!res.writeHead) {
+    if (this[kOnProxyRes]) {
+      this[kOnProxyRes].call(res[kSelf], this[kReq], res)
+    }
+
     if (!proxyRes.upgrade) {
       res.end()
     }
