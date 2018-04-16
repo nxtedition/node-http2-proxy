@@ -139,7 +139,7 @@ server.on('request', (req, res) => {
 #### web (req, res, options, [callback])
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
-- `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse).
+- `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse).
 - `options`: See [Options](#options)
 - `callback(err)`: Called on completion or error. Optional.  See [Options](#options) for error behaviour..
 
