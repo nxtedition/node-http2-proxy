@@ -31,6 +31,7 @@ const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
+const kEndOnError = Symbol('endOnError')
 
 function proxy (req, res, head, {
   hostname,
@@ -38,12 +39,14 @@ function proxy (req, res, head, {
   timeout,
   proxyTimeout,
   proxyName,
+  endOnError = true,
   onReq,
   onRes
 }, callback) {
   req[kRes] = res
 
   res[kSelf] = this
+  res[kEndOnError] = endOnError
   res[kReq] = req
   res[kRes] = res
   res[kProxyCallback] = callback
@@ -167,16 +170,18 @@ function onError (err) {
       err.statusCode = 502
     }
 
-    if (
-      res.headersSent !== false ||
-      res.writable === false ||
-      // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
-      res.finished === true
-    ) {
-      res.destroy()
-    } else {
-      res.writeHead(err.statusCode)
-      res.end()
+    if (res[kEndOnError] !== false) {
+      if (
+        res.headersSent !== false ||
+        res.writable === false ||
+        // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
+        res.finished === true
+      ) {
+        res.destroy()
+      } else {
+        res.writeHead(err.statusCode)
+        res.end()
+      }
     }
   }
 
