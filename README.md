@@ -123,8 +123,6 @@ server.on('request', (req, res) => {
 
 #### Promise API
 
-If no callback is provided a promise will be returned.
-
 ```javascript
 server.on('request', (req, res) => {
   proxy.web(req, res, {
@@ -140,10 +138,10 @@ server.on('request', (req, res) => {
 
 #### web (req, res, options, [callback])
 
-- `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
-- `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse)
+- `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
+- `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse).
 - `options`: See [Options](#options)
-- `callback(err)`: Called on completion or error. Optional.  See [Options](#options) for error behaviour.
+- `callback(err)`: Called on completion or error. Optional.  See [Options](#options) for error behaviour..
 
 Returns a promise if no callback is provided.
 
@@ -151,10 +149,10 @@ See [`request`](https://nodejs.org/api/http.html#http_event_request)
 
 #### ws (req, socket, head, options, [callback])
 
-- `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage)
-- `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket)
-- `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer)
-- `options`: See [Options](#options)
+- `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage).
+- `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
+- `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer).
+- `options`: See [Options](#options).
 - `callback(err)`: Called on completion or error. Optional. See [Options](#options) for error behaviour.
 
 Returns a promise if no callback is provided.
@@ -163,17 +161,17 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
 
 ### Options
 
-  - `hostname`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target hostname
-  - `port`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target port
-  - `proxyTimeout`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout
-  - `proxyName`: Proxy name used for **Via** header
-  - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout
+  - `hostname`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target hostname.
+  - `port`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target port.
+  - `proxyTimeout`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout.
+  - `proxyName`: Proxy name used for **Via** header.
+  - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout.
   - `onReq(req, options)`: Called before proxy request. If returning a truthy value it will be used as the request.
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
-    - `options`: Options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback)
-  - `onRes(req, resOrSocket)`: Called before proxy response
-    - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
-    - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket)
+    - `options`: Options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback).
+  - `onRes(req, resOrSocket)`: Called before proxy response.
+    - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
+    - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
   - `endOnError`: End with status code or destroy response object on error. Defaults to `true`.
   - `endOnFinish`: End response object on finish. Defaults to `true`.
 
