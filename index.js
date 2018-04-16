@@ -156,6 +156,7 @@ function onFinish () {
 function onError (err) {
   const res = this[kRes]
 
+  // TODO: This should never happen?
   if (!res[kProxyCallback]) {
     return
   }
@@ -172,6 +173,30 @@ function onError (err) {
     .removeListener('close', onFinish)
     .removeListener('error', onError)
 
+  if (res[kProxySocket]) {
+    res[kProxySocket].end()
+    res[kProxySocket] = null
+  }
+
+  if (res[kProxyRes]) {
+    res[kProxyRes]
+      // NOTE: Keep 'error' listener.
+      // .removeListener('error', onError)
+      .removeListener('aborted', onProxyAborted)
+    res[kProxyRes].destroy()
+  }
+
+  if (res[kProxyReq]) {
+    res[kProxyReq]
+      // NOTE: Keep 'error' listener.
+      // .removeListener('error', onError)
+      .removeListener('timeout', onProxyTimeout)
+      .removeListener('response', onProxyResponse)
+      .removeListener('upgrade', onProxyUpgrade)
+    res[kProxyReq].abort()
+    res[kProxyReq] = null
+  }
+
   if (err) {
     err.statusCode = err.statusCode || 500
     err.code = err.code || res.code
@@ -183,45 +208,25 @@ function onError (err) {
     }
 
     if (res[kEndOnError] !== false) {
-      // TODO: error handling?
-      // TODO: invoke callback after entirely complete?
       if (
         res.headersSent !== false ||
         res.writable === false ||
         // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
         res.finished === true
       ) {
+        // TODO: Can 'error' be emitted after this?
         res.destroy()
       } else {
+        // TODO: Can 'error' be emitted after this?
+        // TODO: Invoke callback on finish?
         res.writeHead(err.statusCode)
         res.end()
       }
     }
+    callback.call(res[kSelf], err, res[kReq], res)
+  } else {
+    callback.call(res[kSelf], null, res[kReq], res)
   }
-
-  if (res[kProxySocket]) {
-    res[kProxySocket].end()
-    res[kProxySocket] = null
-  }
-
-  if (res[kProxyRes]) {
-    res[kProxyRes]
-      // NOTE: Keep 'error' listener.
-      .removeListener('aborted', onProxyAborted)
-    res[kProxyRes].destroy()
-  }
-
-  if (res[kProxyReq]) {
-    res[kProxyReq]
-      // NOTE: Keep 'error' listener.
-      .removeListener('timeout', onProxyTimeout)
-      .removeListener('response', onProxyResponse)
-      .removeListener('upgrade', onProxyUpgrade)
-    res[kProxyReq].abort()
-    res[kProxyReq] = null
-  }
-
-  callback.call(res[kSelf], err, res[kReq], res)
 }
 
 function onRequestTimeout () {
