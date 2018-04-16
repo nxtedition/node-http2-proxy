@@ -193,12 +193,12 @@ function onError (err) {
   }
 
   if (res[kProxyReq]) {
-    res[kProxyReq].abort()
     res[kProxyReq]
       .removeListener('error', onError)
       .removeListener('timeout', onProxyTimeout)
       .removeListener('response', onProxyResponse)
       .removeListener('upgrade', onProxyUpgrade)
+    res[kProxyReq].abort()
     res[kProxyReq] = null
   }
 
