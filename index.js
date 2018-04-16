@@ -28,6 +28,7 @@ const kRes = Symbol('res')
 const kSelf = Symbol('self')
 const kProxyCallback = Symbol('callback')
 const kProxyReq = Symbol('proxyReq')
+const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
 
@@ -179,16 +180,16 @@ function onError (err) {
     }
   }
 
+  if (res[kProxySocket]) {
+    res[kProxySocket].end()
+    res[kProxySocket] = null
+  }
+
+  if (res[kProxyRes]) {
+    res[kProxyRes].destroy()
+  }
+
   if (res[kProxyReq]) {
-    if (res[kProxyReq].res) {
-      res[kProxyReq].res.destroy()
-    }
-
-    if (res[kProxySocket]) {
-      res[kProxySocket].end()
-      res[kProxySocket] = null
-    }
-
     res[kProxyReq].abort()
     res[kProxyReq] = null
   }
@@ -206,6 +207,8 @@ function onProxyTimeout () {
 
 function onProxyResponse (proxyRes) {
   const res = this[kRes]
+
+  res[kProxyRes] = proxyRes
 
   if (
     res[kProxyCallback] === null ||
