@@ -274,10 +274,11 @@ function onProxyResponse (proxyRes) {
     proxyRes
       .on('error', onError)
       .pipe(res, { end: res[kEndOnFinish] !== false })
-      .on('finish', onFinish)
 
     if (res[kEndOnFinish] === false) {
       proxyRes.on('end', onFinish)
+    } else {
+      res.on('finish', onFinish)
     }
   }
 }
