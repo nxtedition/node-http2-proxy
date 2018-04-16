@@ -164,14 +164,14 @@ function onError (err) {
   const callback = res[kProxyCallback]
   res[kProxyCallback] = null
 
+  res
+    .removeListener('close', onFinish)
+    .removeListener('error', onError)
+
   res[kReq]
     .removeListener('close', onFinish)
     .removeListener('error', onError)
     .removeListener('timeout', onRequestTimeout)
-
-  res
-    .removeListener('close', onFinish)
-    .removeListener('error', onError)
 
   if (res[kProxySocket]) {
     res[kProxySocket].end()
