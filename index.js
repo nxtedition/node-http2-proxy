@@ -195,12 +195,14 @@ function onError (err) {
 
   if (res[kProxyRes]) {
     res[kProxyRes]
+      // NOTE: Keep 'error' listener.
       .removeListener('aborted', onProxyAborted)
     res[kProxyRes].destroy()
   }
 
   if (res[kProxyReq]) {
     res[kProxyReq]
+      // NOTE: Keep 'error' listener.
       .removeListener('timeout', onProxyTimeout)
       .removeListener('response', onProxyResponse)
       .removeListener('upgrade', onProxyUpgrade)
