@@ -163,6 +163,15 @@ function onError (err) {
   const callback = res[kProxyCallback]
   res[kProxyCallback] = null
 
+  res[kReq]
+    .removeListener('close', onFinish)
+    .removeListener('error', onError)
+    .removeListener('timeout', onRequestTimeout)
+
+  res
+    .removeListener('close', onFinish)
+    .removeListener('error', onError)
+
   if (err) {
     err.statusCode = err.statusCode || 500
     err.code = err.code || res.code
@@ -209,15 +218,6 @@ function onError (err) {
     res[kProxyReq].abort()
     res[kProxyReq] = null
   }
-
-  res[kReq]
-    .removeListener('close', onFinish)
-    .removeListener('error', onError)
-    .removeListener('timeout', onRequestTimeout)
-
-  res
-    .removeListener('close', onFinish)
-    .removeListener('error', onError)
 
   callback.call(res[kSelf], err, res[kReq], res)
 }
