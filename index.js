@@ -122,6 +122,7 @@ function proxy (req, res, head, {
 
   req
     .on('close', onFinish)
+    .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
     .on('error', onError)
     .on('timeout', onProxyTimeout)
@@ -138,6 +139,7 @@ function onError (err) {
   const req = res[kReq]
 
   req
+    .removeListener('timeout', onRequestTimeout)
     .removeListener('close', onFinish)
 
   if (res[kProxySocket]) {
