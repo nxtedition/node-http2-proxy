@@ -126,7 +126,7 @@ server.on('request', (req, res) => {
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
 - `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_http_request_options_callback) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse)
 - `options`: See [Options](#options)
-- `callback(err)`: Called on completion or error. Optional
+- `callback(err)`: Called on completion or error. Optional. Note, the response object is not closed if upstream request fails.
 
 Returns a promise if no callback is provided.
 
@@ -138,7 +138,7 @@ See [`request`](https://nodejs.org/api/http.html#http_event_request)
 - `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket)
 - `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer)
 - `options`: See [Options](#options)
-- `callback(err)`: Called on completion or error. Optional
+- `callback(err)`: Called on completion or error. Optional. Note, the response object is not closed if upstream request fails.
 
 Returns a promise if no callback is provided.
 
