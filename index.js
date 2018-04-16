@@ -238,7 +238,7 @@ function onProxyResponse (proxyRes) {
 
   if (!res.writeHead) {
     if (this[kOnProxyRes]) {
-      this[kOnProxyRes].call(res[kSelf], this[kReq], res)
+      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes)
     }
 
     if (!proxyRes.upgrade) {
@@ -253,7 +253,7 @@ function onProxyResponse (proxyRes) {
     }
 
     if (this[kOnProxyRes]) {
-      this[kOnProxyRes].call(res[kSelf], this[kReq], res)
+      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes)
     }
 
     if (res.headersSent === false) {
