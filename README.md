@@ -121,6 +121,23 @@ server.on('request', (req, res) => {
 })
 ```
 
+#### Promise API
+
+If no callback is provided a promise will be returned.
+
+```javascript
+server.on('request', (req, res) => {
+  proxy.web(req, res, {
+    hostname: 'localhost'
+    port: 9000
+  }).catch(err => {
+    if (err) {
+      console.error('proxy error', err)
+    }
+  })
+})
+```
+
 #### web (req, res, options, [callback])
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
