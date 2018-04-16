@@ -186,13 +186,30 @@ function onError (err) {
   }
 
   if (res[kProxyRes]) {
+    res[kProxyRes]
+      .removeListener('error', onError)
+      .removeListener('aborted', onProxyAborted)
     res[kProxyRes].destroy()
   }
 
   if (res[kProxyReq]) {
     res[kProxyReq].abort()
+    res[kProxyReq]
+      .removeListener('error', onError)
+      .removeListener('timeout', onProxyTimeout)
+      .removeListener('response', onProxyResponse)
+      .removeListener('upgrade', onProxyUpgrade)
     res[kProxyReq] = null
   }
+
+  res[kReq]
+    .removeListener('close', onFinish)
+    .removeListener('error', onError)
+    .removeListener('timeout', onRequestTimeout)
+
+  res
+    .removeListener('close', onFinish)
+    .removeListener('error', onError)
 
   callback.call(res[kSelf], err, res[kReq], res)
 }
@@ -209,16 +226,6 @@ function onProxyResponse (proxyRes) {
   const res = this[kRes]
 
   res[kProxyRes] = proxyRes
-
-  if (
-    res[kProxyCallback] === null ||
-    res.writable === false ||
-    res.finished === true ||
-    this.aborted === true
-  ) {
-    return
-  }
-
   proxyRes[kRes] = res
 
   proxyRes.on('aborted', onProxyAborted)
@@ -256,16 +263,6 @@ function onProxyAborted () {
 
 function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   const res = this[kRes]
-
-  if (
-    res[kProxyCallback] === null ||
-    this.aborted === true ||
-    res.writable === false ||
-    // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
-    res.finished === true
-  ) {
-    return
-  }
 
   res[kProxySocket] = proxySocket
   proxySocket[kRes] = res
