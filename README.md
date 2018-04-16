@@ -2,6 +2,57 @@
 
 A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 
+### Version 3 Notes
+
+- No longer handles closing the response. This is left to the user. 
+
+One implementation for handling completion is as follows:
+
+```js
+function createHandler (callback) {
+  return (err, req, res) => {
+    if (err) {
+      if (
+        !res.writeHead ||
+        res.headersSent !== false ||
+        res.writable === false ||
+        // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
+        res.finished === true
+      ) {
+        res.destroy()
+      } else {
+        res.writeHead(err.statusCode)
+        res.end()
+      }
+    } else {
+      res.end()
+    }
+    if (callback) {
+      callback(err)
+    }
+  }
+}
+
+const defaultHandler = createHandler(err => {
+  if (err) {
+    console.error('proxy error', err)
+  }
+})
+```
+
+- No longer returns a promise if no callback is provided.
+
+One implementation for promisifying the API is as follows:
+
+```js
+function promisify (fn) {
+  return (...args) => new Promise((resolve, reject) => {
+    fn(...args, createHandler(err => err ? reject(err) : resolve()))
+  })
+}
+
+```
+
 ### Features
 
 - Proxies HTTP 2, HTTP 1 and WebSocket
@@ -20,6 +71,8 @@ $ npm install http2-proxy
 ### Notes
 
 `http2-proxy` requires at least node **v9.5.0**.
+
+Request & Response errors are emitted to the server object either as `clientError` for http/1 or `streamError` for http/2. See the NodeJS documentation for further details.
 
 ### HTTP/1 API
 
@@ -49,21 +102,13 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000
-  }, err => {
-    if (err) {
-      console.error('proxy error', err)
-    }
-  })
+  }, defaultHandler)
 })
 server.on('upgrade', (req, socket, head) => {
   proxy.ws(req, socket, head, {
     hostname: 'localhost'
     port: 9000
-  }, err => {
-    if (err) {
-      console.error('proxy error', err)
-    }
-  })
+  }, defaultHandler)
 })
 ```
 
@@ -75,11 +120,7 @@ server.on('request', (req, res) => {
     hostname: 'localhost'
     port: 9000,
     onRes: (req, res) => helmet(req, res, () => {})
-  }, err => {
-    if (err) {
-      console.error('proxy error', err)
-    }
-  })
+  }, defaultHandler)
 })
 ```
 
@@ -95,11 +136,7 @@ server.on('request', (req, res) => {
       headers['x-forwarded-proto'] = req.socket.encrypted ? 'https' : 'http'
       headers['x-forwarded-host'] = req.headers['host']
     }
-  }, err => {
-    if (err) {
-      console.error('proxy error', err)
-    }
-  })
+  }, defaultHandler)
 })
 ```
 
@@ -113,49 +150,26 @@ server.on('request', (req, res) => {
     hostname: 'localhost'
     port: 9000,
     onReq: (req, options) => http.request(options)
-  }, err => {
-    if (err) {
-      console.error('proxy error', err)
-    }
-  })
+  }, defaultHandler)
 })
 ```
 
-#### Promise API
-
-```javascript
-server.on('request', (req, res) => {
-  proxy.web(req, res, {
-    hostname: 'localhost'
-    port: 9000
-  }).catch(err => {
-    if (err) {
-      console.error('proxy error', err)
-    }
-  })
-})
-```
-
-#### web (req, res, options, [callback])
+#### web (req, res, options, callback)
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
 - `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse).
 - `options`: See [Options](#options)
-- `callback(err)`: Called on completion or error. Optional.  See [Options](#options) for error behaviour..
-
-Returns a promise if no callback is provided.
+- `callback(err)`: Called on completion or error. See [Options](#options) for error behaviour.
 
 See [`request`](https://nodejs.org/api/http.html#http_event_request)
 
-#### ws (req, socket, head, options, [callback])
+#### ws (req, socket, head, options, callback)
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage).
 - `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
 - `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer).
 - `options`: See [Options](#options).
-- `callback(err)`: Called on completion or error. Optional. See [Options](#options) for error behaviour.
-
-Returns a promise if no callback is provided.
+- `callback(err)`: Called on completion or error. See [Options](#options) for error behaviour.
 
 See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
 
@@ -173,8 +187,6 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
     - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
     - `proxyRes`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
-  - `endOnError`: End with status code or destroy response object on error. Defaults to `true`.
-  - `endOnFinish`: End response object on finish. Defaults to `true`.
 
 ### License
 

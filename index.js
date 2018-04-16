@@ -33,8 +33,6 @@ const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
-const kEndOnError = Symbol('endOnError')
-const kEndOnFinish = Symbol('endOnFinish')
 
 function proxy (req, res, head, {
   hostname,
@@ -42,35 +40,23 @@ function proxy (req, res, head, {
   timeout,
   proxyTimeout,
   proxyName,
-  endOnError = true,
-  endOnFinish = true,
   onReq,
   onRes
 }, callback) {
   req[kRes] = res
 
   res[kSelf] = this
-  res[kEndOnError] = endOnError
-  res[kEndOnFinish] = endOnFinish
   res[kReq] = req
   res[kRes] = res
   res[kProxyCallback] = callback
   res[kProxyReq] = null
   res[kProxySocket] = null
 
-  let promise
-
-  if (!callback) {
-    promise = new Promise((resolve, reject) => {
-      res[kProxyCallback] = err => err ? reject(err) : resolve()
-    })
-  }
-
   if (proxyName && req.headers[VIA]) {
     for (const name of req.headers[VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
         process.nextTick(onError.call, res, createError('loop detected', null, 508))
-        return promise
+        return
       }
     }
   }
@@ -80,12 +66,12 @@ function proxy (req, res, head, {
   if (head !== undefined) {
     if (req.method !== 'GET') {
       process.nextTick(onError.call, res, createError('method not allowed', null, 405))
-      return promise
+      return
     }
 
     if (sanitize(req.headers[UPGRADE]) !== 'websocket') {
       process.nextTick(onError.call, res, createError('bad request', null, 400))
-      return promise
+      return
     }
 
     if (head && head.length) {
@@ -134,21 +120,13 @@ function proxy (req, res, head, {
   res[kProxyReq] = proxyReq
   proxyReq[kOnProxyRes] = onRes
 
-  res
-    .on('close', onFinish)
-    .on('error', onError)
-
   req
     .on('close', onFinish)
-    .on('error', onError)
-    .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
     .on('error', onError)
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
-
-  return promise
 }
 
 function onFinish () {
@@ -157,24 +135,10 @@ function onFinish () {
 
 function onError (err) {
   const res = this[kRes]
+  const req = res[kReq]
 
-  // TODO: This should never happen?
-  if (!res[kProxyCallback]) {
-    return
-  }
-
-  const callback = res[kProxyCallback]
-  res[kProxyCallback] = null
-
-  res
+  req
     .removeListener('close', onFinish)
-    .removeListener('error', onError)
-    .removeListener('finish', onFinish)
-
-  res[kReq]
-    .removeListener('close', onFinish)
-    .removeListener('error', onError)
-    .removeListener('timeout', onRequestTimeout)
 
   if (res[kProxySocket]) {
     res[kProxySocket].end()
@@ -210,27 +174,9 @@ function onError (err) {
     } else if (/HPE_INVALID/.test(err.code)) {
       err.statusCode = 502
     }
-
-    if (res[kEndOnError] !== false) {
-      if (
-        res.headersSent !== false ||
-        res.writable === false ||
-        // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
-        res.finished === true
-      ) {
-        // TODO: Can 'error' be emitted after this?
-        res.destroy()
-      } else {
-        // TODO: Can 'error' be emitted after this?
-        // TODO: Invoke callback on finish?
-        res.writeHead(err.statusCode)
-        res.end()
-      }
-    }
-    callback.call(res[kSelf], err, res[kReq], res)
-  } else {
-    callback.call(res[kSelf], null, res[kReq], res)
   }
+
+  res[kProxyCallback].call(res[kSelf], err, res[kReq], res)
 }
 
 function onRequestTimeout () {
@@ -275,13 +221,8 @@ function onProxyResponse (proxyRes) {
 
     proxyRes
       .on('error', onError)
-      .pipe(res, { end: res[kEndOnFinish] !== false })
-
-    if (res[kEndOnFinish] === false) {
-      proxyRes.on('end', onFinish)
-    } else {
-      res.on('finish', onFinish)
-    }
+      .on('end', onFinish)
+      .pipe(res, { end: false })
   }
 }
 
