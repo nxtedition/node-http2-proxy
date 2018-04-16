@@ -184,6 +184,7 @@ function onError (err) {
       // NOTE: Keep 'error' listener.
       // .removeListener('error', onError)
       .removeListener('aborted', onProxyAborted)
+      .removeListener('end', onFinish)
     res[kProxyRes].destroy()
   }
 
@@ -274,6 +275,10 @@ function onProxyResponse (proxyRes) {
       .on('error', onError)
       .pipe(res, { end: res[kEndOnFinish] !== false })
       .on('finish', onFinish)
+
+    if (res[kEndOnFinish] === false) {
+      proxyRes.on('end', onFinish)
+    }
   }
 }
 
