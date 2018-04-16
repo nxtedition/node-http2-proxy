@@ -167,6 +167,7 @@ function onError (err) {
   res
     .removeListener('close', onFinish)
     .removeListener('error', onError)
+    .removeListener('finish', onFinish)
 
   res[kReq]
     .removeListener('close', onFinish)
