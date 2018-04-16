@@ -183,6 +183,8 @@ function onError (err) {
     }
 
     if (res[kEndOnError] !== false) {
+      // TODO: error handling?
+      // TODO: invoke callback after entirely complete?
       if (
         res.headersSent !== false ||
         res.writable === false ||
