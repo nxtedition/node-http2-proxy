@@ -23,6 +23,8 @@ module.exports = {
   }
 }
 
+function noop () {}
+
 const kReq = Symbol('req')
 const kRes = Symbol('res')
 const kSelf = Symbol('self')
@@ -181,20 +183,20 @@ function onError (err) {
 
   if (res[kProxyRes]) {
     res[kProxyRes]
-      // NOTE: Keep 'error' listener.
-      // .removeListener('error', onError)
+      .removeListener('error', onError)
       .removeListener('aborted', onProxyAborted)
       .removeListener('end', onFinish)
+    res[kProxyRes].on('error', noop)
     res[kProxyRes].destroy()
   }
 
   if (res[kProxyReq]) {
     res[kProxyReq]
-      // NOTE: Keep 'error' listener.
-      // .removeListener('error', onError)
+      .removeListener('error', onError)
       .removeListener('timeout', onProxyTimeout)
       .removeListener('response', onProxyResponse)
       .removeListener('upgrade', onProxyUpgrade)
+    res[kProxyReq].on('error', noop)
     res[kProxyReq].abort()
     res[kProxyReq] = null
   }
