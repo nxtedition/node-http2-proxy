@@ -32,6 +32,7 @@ const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
 const kEndOnError = Symbol('endOnError')
+const kEndOnFinish = Symbol('endOnFinish')
 
 function proxy (req, res, head, {
   hostname,
@@ -40,6 +41,7 @@ function proxy (req, res, head, {
   proxyTimeout,
   proxyName,
   endOnError = true,
+  endOnFinish = true,
   onReq,
   onRes
 }, callback) {
@@ -47,6 +49,7 @@ function proxy (req, res, head, {
 
   res[kSelf] = this
   res[kEndOnError] = endOnError
+  res[kEndOnFinish] = endOnFinish
   res[kReq] = req
   res[kRes] = res
   res[kProxyCallback] = callback
@@ -255,7 +258,7 @@ function onProxyResponse (proxyRes) {
 
     proxyRes
       .on('error', onError)
-      .pipe(res)
+      .pipe(res, { end: res[kEndOnFinish] !== false })
       .on('finish', onFinish)
   }
 }
