@@ -33,11 +33,13 @@ const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
+const kEnd = Symbol('end')
 
 function proxy (req, res, head, {
   hostname,
   port,
   timeout,
+  end = true,
   proxyTimeout,
   proxyName,
   onReq,
@@ -51,6 +53,7 @@ function proxy (req, res, head, {
   res[kProxyCallback] = callback
   res[kProxyReq] = null
   res[kProxySocket] = null
+  res[kEnd] = end
 
   let promise
 
@@ -241,7 +244,7 @@ function onProxyResponse (proxyRes) {
     proxyRes
       .on('error', onError)
       .on('end', onEnd)
-      .pipe(res, { end: false })
+      .pipe(res, { end: res[kEnd] })
   }
 }
 
@@ -279,7 +282,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 
   proxySocket
     .on('error', onError)
-    .pipe(res)
+    .pipe(res, { end: res[kEnd] })
     .pipe(proxySocket)
 }
 

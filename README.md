@@ -4,18 +4,15 @@ A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 
 ### Version 3 Notes
 
-- No longer handles closing the response. This is left to the user. 
-
-One implementation for handling completion is as follows:
+- No longer handles ends or destroys response on error. Use an appropriate error handler such as `finalhandler`.
 
 ```js
 const finalhandler = require('finalhandler')
 
-const defaultHandler = (err, req, res) => {
+const defaultWebHandler = (err, req, res) => {
   if (err) {
+    console.error('proxy error', err)
     finalhandler(req, res)(err)
-  } else {
-    res.end()
   }
 }
 ```
@@ -40,8 +37,6 @@ $ npm install http2-proxy
 `http2-proxy` requires at least node **v9.5.0**.
 
 Request & Response errors are emitted to the server object either as `clientError` for http/1 or `streamError` for http/2. See the NodeJS documentation for further details.
-
-You must handle closing the response yourself.
 
 ```
 
@@ -73,13 +68,17 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000
-  }, defaultHandler)
+  }, defaultWebHandler)
 })
 server.on('upgrade', (req, socket, head) => {
   proxy.ws(req, socket, head, {
     hostname: 'localhost'
     port: 9000
-  }, defaultHandler)
+  }, err => {
+    if (err) {
+      console.error('proxy error', err)
+    }
+  })
 })
 ```
 
@@ -91,7 +90,7 @@ server.on('request', (req, res) => {
     hostname: 'localhost'
     port: 9000,
     onRes: (req, res) => helmet(req, res, () => {})
-  }, defaultHandler)
+  }, defaultWebHandler)
 })
 ```
 
@@ -107,7 +106,7 @@ server.on('request', (req, res) => {
       headers['x-forwarded-proto'] = req.socket.encrypted ? 'https' : 'http'
       headers['x-forwarded-host'] = req.headers['host']
     }
-  }, defaultHandler)
+  }, defaultWebHandler)
 })
 ```
 
@@ -121,7 +120,7 @@ server.on('request', (req, res) => {
     hostname: 'localhost'
     port: 9000,
     onReq: (req, options) => http.request(options)
-  }, defaultHandler)
+  }, defaultWebHandler)
 })
 ```
 
@@ -151,6 +150,7 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
   - `proxyTimeout`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout.
   - `proxyName`: Proxy name used for **Via** header.
   - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout.
+  - `end`: end response. Defaults to `true`.
   - `onReq(req, options)`: Called before proxy request. If returning a truthy value it will be used as the request.
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
     - `options`: Options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback).
