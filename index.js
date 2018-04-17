@@ -145,6 +145,9 @@ function onError (err) {
     .removeListener('close', onRequestAborted)
 
   if (res[kProxySocket]) {
+    res[kProxySocket]
+      .removeListener('error', onError)
+    res[kProxySocket].on('error', noop)
     res[kProxySocket].end()
     res[kProxySocket] = null
   }
