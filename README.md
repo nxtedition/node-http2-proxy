@@ -11,22 +11,13 @@ One implementation for handling completion is as follows:
 ```js
 const finalhandler = require('finalhandler')
 
-const defaultHandler = (err, req, res) => finalhandler(req, res, createHandler({
-  onerror: err => console.error('proxy error', err)
-})(err)
-```
-
-- No longer returns a promise if no callback is provided.
-
-One implementation for promisifying the API is as follows:
-
-```js
-function promisify (fn) {
-  return (...args) => new Promise((resolve, reject) => {
-    fn(...args, err => err ? reject(err) : resolve())
-  })
+const defaultHandler = (err, req, res) => {
+  if (err) {
+    finalhandler(req, res)(err)
+  } else {
+    res.end()
+  }
 }
-
 ```
 
 ### Features
@@ -49,6 +40,10 @@ $ npm install http2-proxy
 `http2-proxy` requires at least node **v9.5.0**.
 
 Request & Response errors are emitted to the server object either as `clientError` for http/1 or `streamError` for http/2. See the NodeJS documentation for further details.
+
+You must handle closing the response yourself.
+
+```
 
 ### HTTP/1 API
 
