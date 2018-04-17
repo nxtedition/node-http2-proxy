@@ -135,7 +135,6 @@ function proxy (req, res, head, {
 
   req
     .on('aborted', onRequestAborted)
-    .on('close', onRequestAborted)
     .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
     .on('error', onComplete)
@@ -154,7 +153,6 @@ function onComplete (err) {
   req
     .removeListener('timeout', onRequestTimeout)
     .removeListener('aborted', onRequestAborted)
-    .removeListener('close', onRequestAborted)
 
   res
     .removeListener('finish', onComplete)
@@ -162,6 +160,7 @@ function onComplete (err) {
   if (res[kProxySocket]) {
     res[kProxySocket]
       .removeListener('error', onComplete)
+      .removeListener('close', onProxyAborted)
     res[kProxySocket].on('error', noop)
     res[kProxySocket].end()
     res[kProxySocket] = null
@@ -265,6 +264,9 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   res[kProxySocket] = proxySocket
   proxySocket[kRes] = res
 
+  this.removeListener('close', onProxyAborted)
+  proxySocket.addListener('close', onProxyAborted)
+
   setupSocket(proxySocket)
 
   if (proxyHead && proxyHead.length) {
@@ -295,7 +297,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   if (res[kEnd]) {
     res.on('finish', onComplete)
   } else {
-    proxyRes.on('end', onComplete)
+    proxySocket.on('end', onComplete)
   }
 }
 
