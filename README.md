@@ -159,7 +159,7 @@ server.on('request', (req, res) => {
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
 - `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse).
 - `options`: See [Options](#options)
-- `callback(err, req, res, { aborted })`: Called on completion or error. See [Options](#options) for error behaviour.
+- `callback(err, req, res)`: Called on completion or error.
 
 See [`request`](https://nodejs.org/api/http.html#http_event_request)
 
@@ -169,7 +169,7 @@ See [`request`](https://nodejs.org/api/http.html#http_event_request)
 - `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
 - `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer).
 - `options`: See [Options](#options).
-- `callback(err, req, res, { aborted })`: Called on completion or error. See [Options](#options) for error behaviour.
+- `callback(err, req, res)`: Called on completion or error.
 
 See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
 

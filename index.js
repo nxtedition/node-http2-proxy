@@ -33,7 +33,6 @@ const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
-const kAborted = Symbol('aborted')
 
 function proxy (req, res, head, {
   hostname,
@@ -45,7 +44,6 @@ function proxy (req, res, head, {
   onRes
 }, callback) {
   req[kRes] = res
-  req[kAborted] = false
 
   res[kSelf] = this
   res[kReq] = req
@@ -183,9 +181,7 @@ function onError (err) {
     }
   }
 
-  res[kProxyCallback].call(res[kSelf], err, req, res, {
-    aborted: req[kAborted]
-  })
+  res[kProxyCallback].call(res[kSelf], err, req, res)
 }
 
 function onRequestTimeout () {
@@ -193,7 +189,6 @@ function onRequestTimeout () {
 }
 
 function onRequestAborted () {
-  this[kAborted] = true
   onError.call(this)
 }
 
