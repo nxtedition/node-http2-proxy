@@ -141,6 +141,7 @@ function proxy (req, res, head, {
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
+    .on('close', onProxyAborted)
 
   return promise
 }
@@ -167,7 +168,6 @@ function onComplete (err) {
   if (res[kProxyRes]) {
     res[kProxyRes]
       .removeListener('error', onComplete)
-      .removeListener('aborted', onProxyAborted)
       .removeListener('end', onComplete)
     res[kProxyRes].on('error', noop)
     res[kProxyRes].destroy()
@@ -177,6 +177,7 @@ function onComplete (err) {
     res[kProxyReq]
       .removeListener('error', onComplete)
       .removeListener('timeout', onProxyTimeout)
+      .removeListener('close', onProxyAborted)
       .removeListener('response', onProxyResponse)
       .removeListener('upgrade', onProxyUpgrade)
     res[kProxyReq].on('error', noop)
@@ -215,8 +216,6 @@ function onProxyResponse (proxyRes) {
 
   res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
-
-  proxyRes.on('aborted', onProxyAborted)
 
   if (!res.writeHead) {
     if (this[kOnProxyRes]) {
