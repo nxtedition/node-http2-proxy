@@ -15,6 +15,13 @@ const defaultWebHandler = (err, req, res) => {
     finalhandler(req, res)(err)
   }
 }
+
+const defaultWSHandler = (err, req, socket, head) => {
+  if (err) {
+    console.error('proxy error', err)
+    socket.destroy()
+  }
+}
 ```
 
 ### Features
@@ -74,11 +81,7 @@ server.on('upgrade', (req, socket, head) => {
   proxy.ws(req, socket, head, {
     hostname: 'localhost'
     port: 9000
-  }, err => {
-    if (err) {
-      console.error('proxy error', err)
-    }
-  })
+  }, defaultWsHandler)
 })
 ```
 
