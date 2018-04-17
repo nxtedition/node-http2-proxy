@@ -1,6 +1,6 @@
 {
   "name": "http2-proxy",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "scripts": {
     "dev": "nodemon --inspect=9308 src",
     "precommit": "standard",
