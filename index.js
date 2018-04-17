@@ -139,7 +139,6 @@ function proxy (req, res, head, {
     .pipe(proxyReq)
     .on('error', onComplete)
     .on('timeout', onProxyTimeout)
-    .on('close', onProxyAborted)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
 
@@ -170,6 +169,7 @@ function onComplete (err) {
     res[kProxyRes]
       .removeListener('error', onComplete)
       .removeListener('end', onComplete)
+      .removeListener('aborted', onProxyAborted)
     res[kProxyRes].on('error', noop)
     res[kProxyRes].destroy()
   }
@@ -178,7 +178,6 @@ function onComplete (err) {
     res[kProxyReq]
       .removeListener('error', onComplete)
       .removeListener('timeout', onProxyTimeout)
-      .removeListener('close', onProxyAborted)
       .removeListener('response', onProxyResponse)
       .removeListener('upgrade', onProxyUpgrade)
     res[kProxyReq].on('error', noop)
@@ -222,6 +221,8 @@ function onProxyResponse (proxyRes) {
   res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
 
+  proxyRes.on('aborted', onProxyAborted)
+
   if (!res.writeHead) {
     if (this[kOnProxyRes]) {
       this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes)
@@ -264,7 +265,6 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   res[kProxySocket] = proxySocket
   proxySocket[kRes] = res
 
-  this.removeListener('close', onProxyAborted)
   proxySocket.on('close', onProxyAborted)
 
   setupSocket(proxySocket)
