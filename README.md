@@ -9,35 +9,11 @@ A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 One implementation for handling completion is as follows:
 
 ```js
-function createHandler (callback) {
-  return (err, req, res) => {
-    if (err) {
-      if (
-        !res.writeHead ||
-        res.headersSent !== false ||
-        res.writable === false ||
-        // NOTE: Checking only writable is not enough. See, https://github.com/nodejs/node/commit/8589c70c85411c2dd0e02c021d926b1954c74696
-        res.finished === true
-      ) {
-        res.destroy()
-      } else {
-        res.writeHead(err.statusCode)
-        res.end()
-      }
-    } else {
-      res.end()
-    }
-    if (callback) {
-      callback(err)
-    }
-  }
-}
+const finalhandler = require('finalhandler')
 
-const defaultHandler = createHandler(err => {
-  if (err) {
-    console.error('proxy error', err)
-  }
-})
+const defaultHandler = (err, req, res) => finalhandler(req, res, createHandler({
+  onerror: err => console.error('proxy error', err)
+})(err)
 ```
 
 - No longer returns a promise if no callback is provided.
@@ -47,7 +23,7 @@ One implementation for promisifying the API is as follows:
 ```js
 function promisify (fn) {
   return (...args) => new Promise((resolve, reject) => {
-    fn(...args, createHandler(err => err ? reject(err) : resolve()))
+    fn(...args, err => err ? reject(err) : resolve())
   })
 }
 
