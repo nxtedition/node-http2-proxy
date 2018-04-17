@@ -135,6 +135,7 @@ function proxy (req, res, head, {
 
   req
     .on('aborted', onRequestAborted)
+    .on('close', onRequestAborted)
     .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
     .on('error', onComplete)
@@ -153,6 +154,7 @@ function onComplete (err) {
   req
     .removeListener('timeout', onRequestTimeout)
     .removeListener('aborted', onRequestAborted)
+    .removeListener('close', onRequestAborted)
 
   res
     .removeListener('finish', onComplete)
@@ -211,6 +213,10 @@ function onProxyTimeout () {
   onComplete.call(this, createError('gateway timeout', null, 504))
 }
 
+function onProxyAborted () {
+  onComplete.call(this, createError('socket hang up', 'ECONNRESET', 502))
+}
+
 function onProxyResponse (proxyRes) {
   const res = this[kRes]
 
@@ -251,10 +257,6 @@ function onProxyResponse (proxyRes) {
       proxyRes.on('end', onComplete)
     }
   }
-}
-
-function onProxyAborted () {
-  onComplete.call(this, createError('socket hang up', 'ECONNRESET', 502))
 }
 
 function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
