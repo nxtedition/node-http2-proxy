@@ -33,6 +33,7 @@ const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
+const kAborted = Symbol('aborted')
 
 function proxy (req, res, head, {
   hostname,
@@ -121,7 +122,7 @@ function proxy (req, res, head, {
   proxyReq[kOnProxyRes] = onRes
 
   req
-    .on('close', onFinish)
+    .on('close', onRequestAborted)
     .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
     .on('error', onError)
@@ -130,7 +131,7 @@ function proxy (req, res, head, {
     .on('upgrade', onProxyUpgrade)
 }
 
-function onFinish () {
+function onEnd () {
   onError.call(this)
 }
 
@@ -140,7 +141,7 @@ function onError (err) {
 
   req
     .removeListener('timeout', onRequestTimeout)
-    .removeListener('close', onFinish)
+    .removeListener('close', onRequestAborted)
 
   if (res[kProxySocket]) {
     res[kProxySocket].end()
@@ -151,7 +152,7 @@ function onError (err) {
     res[kProxyRes]
       .removeListener('error', onError)
       .removeListener('aborted', onProxyAborted)
-      .removeListener('end', onFinish)
+      .removeListener('end', onEnd)
     res[kProxyRes].on('error', noop)
     res[kProxyRes].destroy()
   }
@@ -178,11 +179,18 @@ function onError (err) {
     }
   }
 
-  res[kProxyCallback].call(res[kSelf], err, res[kReq], res)
+  res[kProxyCallback].call(res[kSelf], err, req, res, {
+    aborted: req[kAborted]
+  })
 }
 
 function onRequestTimeout () {
   onError.call(this, createError('request timeout', null, 408))
+}
+
+function onRequestAborted () {
+  this[kAborted] = true
+  onError.call(this)
 }
 
 function onProxyTimeout () {
@@ -223,7 +231,7 @@ function onProxyResponse (proxyRes) {
 
     proxyRes
       .on('error', onError)
-      .on('end', onFinish)
+      .on('end', onEnd)
       .pipe(res, { end: false })
   }
 }
