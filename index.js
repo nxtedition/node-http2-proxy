@@ -45,6 +45,7 @@ function proxy (req, res, head, {
   onRes
 }, callback) {
   req[kRes] = res
+  req[kAborted] = false
 
   res[kSelf] = this
   res[kReq] = req
