@@ -66,7 +66,7 @@ function proxy (req, res, head, {
   if (proxyName && req.headers[VIA]) {
     for (const name of req.headers[VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
-        process.nextTick(onError.call, res, createError('loop detected', null, 508))
+        process.nextTick(onComplete.call, res, createError('loop detected', null, 508))
         return promise
       }
     }
@@ -76,12 +76,12 @@ function proxy (req, res, head, {
 
   if (head !== undefined) {
     if (req.method !== 'GET') {
-      process.nextTick(onError.call, res, createError('method not allowed', null, 405))
+      process.nextTick(onComplete.call, res, createError('method not allowed', null, 405))
       return promise
     }
 
     if (sanitize(req.headers[UPGRADE]) !== 'websocket') {
-      process.nextTick(onError.call, res, createError('bad request', null, 400))
+      process.nextTick(onComplete.call, res, createError('bad request', null, 400))
       return promise
     }
 
@@ -135,7 +135,7 @@ function proxy (req, res, head, {
     .on('aborted', onRequestAborted)
     .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
-    .on('error', onError)
+    .on('error', onComplete)
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
@@ -143,11 +143,7 @@ function proxy (req, res, head, {
   return promise
 }
 
-function onEnd () {
-  onError.call(this)
-}
-
-function onError (err) {
+function onComplete (err) {
   const res = this[kRes]
   const req = res[kReq]
 
@@ -155,9 +151,12 @@ function onError (err) {
     .removeListener('timeout', onRequestTimeout)
     .removeListener('aborted', onRequestAborted)
 
+  res
+    .removeListener('finish', onComplete)
+
   if (res[kProxySocket]) {
     res[kProxySocket]
-      .removeListener('error', onError)
+      .removeListener('error', onComplete)
     res[kProxySocket].on('error', noop)
     res[kProxySocket].end()
     res[kProxySocket] = null
@@ -165,16 +164,16 @@ function onError (err) {
 
   if (res[kProxyRes]) {
     res[kProxyRes]
-      .removeListener('error', onError)
+      .removeListener('error', onComplete)
       .removeListener('aborted', onProxyAborted)
-      .removeListener('end', onEnd)
+      .removeListener('end', onComplete)
     res[kProxyRes].on('error', noop)
     res[kProxyRes].destroy()
   }
 
   if (res[kProxyReq]) {
     res[kProxyReq]
-      .removeListener('error', onError)
+      .removeListener('error', onComplete)
       .removeListener('timeout', onProxyTimeout)
       .removeListener('response', onProxyResponse)
       .removeListener('upgrade', onProxyUpgrade)
@@ -198,15 +197,15 @@ function onError (err) {
 }
 
 function onRequestTimeout () {
-  onError.call(this, createError('request timeout', null, 408))
+  onComplete.call(this, createError('request timeout', null, 408))
 }
 
 function onRequestAborted () {
-  onError.call(this)
+  onComplete.call(this)
 }
 
 function onProxyTimeout () {
-  onError.call(this, createError('gateway timeout', null, 504))
+  onComplete.call(this, createError('gateway timeout', null, 504))
 }
 
 function onProxyResponse (proxyRes) {
@@ -242,14 +241,19 @@ function onProxyResponse (proxyRes) {
     }
 
     proxyRes
-      .on('error', onError)
-      .on('end', onEnd)
+      .on('error', onComplete)
       .pipe(res, { end: res[kEnd] })
+
+    if (res[kEnd]) {
+      res.on('finish', onComplete)
+    } else {
+      proxyRes.on('end', onComplete)
+    }
   }
 }
 
 function onProxyAborted () {
-  onError.call(this, createError('socket hang up', 'ECONNRESET', 502))
+  onComplete.call(this, createError('socket hang up', 'ECONNRESET', 502))
 }
 
 function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
@@ -281,7 +285,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   res.write(head)
 
   proxySocket
-    .on('error', onError)
+    .on('error', onComplete)
     .pipe(res, { end: res[kEnd] })
     .pipe(proxySocket)
 }
