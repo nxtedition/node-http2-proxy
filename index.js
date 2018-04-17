@@ -288,6 +288,12 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
     .on('error', onComplete)
     .pipe(res, { end: res[kEnd] })
     .pipe(proxySocket)
+
+  if (res[kEnd]) {
+    res.on('finish', onComplete)
+  } else {
+    proxyRes.on('end', onComplete)
+  }
 }
 
 function getRequestHeaders (reqHeaders, reqSocket) {
