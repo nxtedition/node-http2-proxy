@@ -61,7 +61,7 @@ function proxy (req, res, head, {
 
   if (!callback) {
     promise = new Promise((resolve, reject) => {
-      callback = err => err ? reject(err) : resolve()
+      callback = (err, ...args) => err ? reject(err) : resolve(args)
     })
   }
 
