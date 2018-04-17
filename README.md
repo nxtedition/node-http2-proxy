@@ -139,7 +139,7 @@ See [`request`](https://nodejs.org/api/http.html#http_event_request)
 - `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
 - `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer).
 - `options`: See [Options](#options).
-- `callback(err, req, res)`: Called on completion or error. Optional.
+- `callback(err, req, socket, head)`: Called on completion or error. Optional.
 
 See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
 

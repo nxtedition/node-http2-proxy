@@ -34,6 +34,7 @@ const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
 const kEnd = Symbol('end')
+const kHead = Symbol('head')
 
 function proxy (req, res, head, {
   hostname,
@@ -54,6 +55,7 @@ function proxy (req, res, head, {
   res[kProxyReq] = null
   res[kProxySocket] = null
   res[kEnd] = end
+  res[kHead] = head
 
   let promise
 
@@ -193,7 +195,7 @@ function onComplete (err) {
     }
   }
 
-  res[kProxyCallback].call(res[kSelf], err, req, res)
+  res[kProxyCallback].call(res[kSelf], err, req, res, res[kHead])
 }
 
 function onRequestTimeout () {
