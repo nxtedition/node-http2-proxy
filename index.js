@@ -265,7 +265,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   proxySocket[kRes] = res
 
   this.removeListener('close', onProxyAborted)
-  proxySocket.addListener('close', onProxyAborted)
+  proxySocket.on('close', onProxyAborted)
 
   setupSocket(proxySocket)
 
