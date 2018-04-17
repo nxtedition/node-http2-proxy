@@ -159,6 +159,7 @@ function onComplete (err) {
   if (res[kProxySocket]) {
     res[kProxySocket]
       .removeListener('error', onComplete)
+      .removeListener('end', onComplete)
     res[kProxySocket].on('error', noop)
     res[kProxySocket].end()
     res[kProxySocket] = null
