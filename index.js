@@ -139,9 +139,9 @@ function proxy (req, res, head, {
     .pipe(proxyReq)
     .on('error', onComplete)
     .on('timeout', onProxyTimeout)
+    .on('close', onProxyAborted)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
-    .on('close', onProxyAborted)
 
   return promise
 }
