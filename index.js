@@ -229,6 +229,7 @@ function onProxyResponse (proxyRes) {
     }
 
     if (!proxyRes.upgrade) {
+      // TODO (fix) Should this be an error?
       res.end()
     }
   } else {
