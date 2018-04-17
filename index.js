@@ -52,11 +52,19 @@ function proxy (req, res, head, {
   res[kProxyReq] = null
   res[kProxySocket] = null
 
+  let promise
+
+  if (!callback) {
+    promise = new Promise((resolve, reject) => {
+      callback = err => err ? reject(err) : resolve()
+    })
+  }
+
   if (proxyName && req.headers[VIA]) {
     for (const name of req.headers[VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
         process.nextTick(onError.call, res, createError('loop detected', null, 508))
-        return
+        return promise
       }
     }
   }
@@ -66,12 +74,12 @@ function proxy (req, res, head, {
   if (head !== undefined) {
     if (req.method !== 'GET') {
       process.nextTick(onError.call, res, createError('method not allowed', null, 405))
-      return
+      return promise
     }
 
     if (sanitize(req.headers[UPGRADE]) !== 'websocket') {
       process.nextTick(onError.call, res, createError('bad request', null, 400))
-      return
+      return promise
     }
 
     if (head && head.length) {
@@ -128,6 +136,8 @@ function proxy (req, res, head, {
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
+
+  return promise
 }
 
 function onEnd () {
