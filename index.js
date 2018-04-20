@@ -232,8 +232,8 @@ function onProxyResponse (proxyRes) {
     }
 
     if (!proxyRes.upgrade) {
-      // TODO (fix) Should this be an error?
-      res.end()
+      socket.write(createHttpHeader(`HTTP/${proxyRes.httpVersion} ${proxyRes.statusCode}`, proxyRes.headers))
+      proxyRes.pipe(socket)
     }
   } else {
     setupHeaders(proxyRes.headers)
@@ -274,21 +274,7 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
     proxySocket.unshift(proxyHead)
   }
 
-  let head = 'HTTP/1.1 101 Switching Protocols'
-
-  for (const [ key, value ] of Object.entries(proxyRes.headers)) {
-    if (!Array.isArray(value)) {
-      head += '\r\n' + key + ': ' + value
-    } else {
-      for (let i = 0; i < value.length; i++) {
-        head += '\r\n' + key + ': ' + value[i]
-      }
-    }
-  }
-
-  head += '\r\n\r\n'
-
-  res.write(head)
+  res.write(createHttpHeader('HTTP/1.1 101 Switching Protocols', proxyRes.headers))
 
   proxySocket
     .on('error', onComplete)
@@ -300,6 +286,21 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   } else {
     proxySocket.on('end', onComplete)
   }
+}
+
+function createHttpHeader (line, headers) {
+  let head = line
+  for (const [ key, value ] of Object.entries(headers)) {
+    if (!Array.isArray(value)) {
+      head += '\r\n' + key + ': ' + value
+    } else {
+      for (let i = 0; i < value.length; i++) {
+        head += '\r\n' + key + ': ' + value[i]
+      }
+    }
+  }
+  head += '\r\n\r\n'
+  return head
 }
 
 function getRequestHeaders (req) {
