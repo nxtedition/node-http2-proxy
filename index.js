@@ -13,6 +13,7 @@ const UPGRADE = 'upgrade'
 const VIA = 'via'
 const AUTHORITY = ':authority'
 const HTTP2_SETTINGS = 'http2-settings'
+const CLOSE = 'close'
 
 module.exports = {
   ws (req, socket, head, options, callback) {
@@ -220,6 +221,7 @@ function onProxyAborted () {
 
 function onProxyResponse (proxyRes) {
   const res = this[kRes]
+  const req = res[kReq]
 
   res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
@@ -237,6 +239,16 @@ function onProxyResponse (proxyRes) {
     }
   } else {
     setupHeaders(proxyRes.headers)
+
+    if (req.httpVersion === '1.0') {
+      delete proxyRes.headers['transfer-encoding']
+    }
+
+    if (req.httpVersion === '1.0') {
+      proxyRes.headers[CONNECTION] = req.headers[CONNECTION] || CLOSE
+    } else if (req.httpVersion !== '2.0' && !proxyRes.headers[CONNECTION]) {
+      proxyRes.headers[CONNECTION] = req.headers[CONNECTION] || KEEP_ALIVE
+    }
 
     res.statusCode = proxyRes.statusCode
     res.statusMessage = proxyRes.statusMessage
