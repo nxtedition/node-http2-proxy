@@ -247,10 +247,6 @@ function onProxyResponse (proxyRes) {
       this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes)
     }
 
-    if (!res.headersSent) {
-      res.writeHead(res.statusCode)
-    }
-
     proxyRes
       .on('error', onComplete)
       .pipe(res, { end: res[kEnd] })
