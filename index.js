@@ -178,6 +178,7 @@ function onComplete (err) {
       .removeListener('aborted', onProxyAborted)
     res[kProxyRes].on('error', noop)
     res[kProxyRes].destroy()
+    res[kProxyRes] = null
   }
 
   if (res[kProxyReq]) {
