@@ -74,7 +74,7 @@ function proxy (req, res, head, {
     }
   }
 
-  const headers = getRequestHeaders(req.headers, req.socket)
+  const headers = getRequestHeaders(req)
 
   if (head !== undefined) {
     if (req.method !== 'GET') {
@@ -302,12 +302,12 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   }
 }
 
-function getRequestHeaders (reqHeaders, reqSocket) {
-  const host = reqHeaders[AUTHORITY] || reqHeaders[HOST]
-  const forwarded = reqHeaders[FORWARDED]
+function getRequestHeaders (req) {
+  const host = req.headers[AUTHORITY] || req.headers[HOST]
+  const forwarded = req.headers[FORWARDED]
 
   const headers = {}
-  for (const [ key, value ] of Object.entries(reqHeaders)) {
+  for (const [ key, value ] of Object.entries(req.headers)) {
     if (key.charAt(0) !== ':') {
       headers[key] = value
     }
@@ -315,9 +315,9 @@ function getRequestHeaders (reqHeaders, reqSocket) {
 
   setupHeaders(headers)
 
-  if (reqSocket) {
-    headers[FORWARDED] = `by=${reqSocket.localAddress}`
-    headers[FORWARDED] += `; for=${reqSocket.remoteAddress}`
+  if (req.socket) {
+    headers[FORWARDED] = `by=${req.socket.localAddress}`
+    headers[FORWARDED] += `; for=${req.socket.remoteAddress}`
   }
 
   if (forwarded) {
@@ -335,8 +335,13 @@ function getRequestHeaders (reqHeaders, reqSocket) {
     headers[FORWARDED] += `; host=${host}`
   }
 
-  if (reqSocket) {
-    headers[FORWARDED] += `; proto=${reqSocket.encrypted ? 'https' : 'http'}`
+  if (req.socket) {
+    headers[FORWARDED] += `; proto=${req.socket.encrypted ? 'https' : 'http'}`
+  }
+
+  if ((req.method === 'DELETE' || req.method === 'OPTIONS') && !req.headers['content-length']) {
+    headers['content-length'] = '0'
+    delete headers['transfer-encoding']
   }
 
   return headers
