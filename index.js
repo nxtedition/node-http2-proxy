@@ -154,9 +154,9 @@ function onComplete (err) {
   const req = res[kReq]
 
   req
-    .removeListener('timeout', onRequestTimeout)
-    .removeListener('aborted', onComplete)
     .removeListener('close', onComplete)
+    .removeListener('aborted', onComplete)
+    .removeListener('timeout', onRequestTimeout)
 
   res
     .removeListener('finish', onComplete)
