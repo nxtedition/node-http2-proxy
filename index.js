@@ -69,7 +69,7 @@ function proxy (req, res, head, {
   if (proxyName && req.headers[VIA]) {
     for (const name of req.headers[VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
-        process.nextTick(onComplete.call, res, createError('loop detected', null, 508))
+        process.nextTick(onComplete.call, res, new HttpError('loop detected', null, 508))
         return promise
       }
     }
@@ -79,12 +79,12 @@ function proxy (req, res, head, {
 
   if (head !== undefined) {
     if (req.method !== 'GET') {
-      process.nextTick(onComplete.call, res, createError('method not allowed', null, 405))
+      process.nextTick(onComplete.call, res, new HttpError('method not allowed', null, 405))
       return promise
     }
 
     if (sanitize(req.headers[UPGRADE]) !== 'websocket') {
-      process.nextTick(onComplete.call, res, createError('bad request', null, 400))
+      process.nextTick(onComplete.call, res, new HttpError('bad request', null, 400))
       return promise
     }
 
@@ -208,15 +208,15 @@ function onComplete (err) {
 }
 
 function onRequestTimeout () {
-  onComplete.call(this, createError('request timeout', null, 408))
+  onComplete.call(this, new HttpError('request timeout', null, 408))
 }
 
 function onProxyTimeout () {
-  onComplete.call(this, createError('gateway timeout', null, 504))
+  onComplete.call(this, new HttpError('gateway timeout', null, 504))
 }
 
 function onProxyAborted () {
-  onComplete.call(this, createError('socket hang up', 'ECONNRESET', 502))
+  onComplete.call(this, new HttpError('socket hang up', 'ECONNRESET', 502))
 }
 
 function onProxyResponse (proxyRes) {
@@ -390,9 +390,10 @@ function sanitize (name) {
   return name ? name.trim().toLowerCase() : ''
 }
 
-function createError (msg, code, statusCode) {
-  const err = new Error(msg)
-  err.code = code
-  err.statusCode = statusCode
-  return err
+class HttpError extends Error {
+  constructor (msg, code, statusCode) {
+    super(msg)
+    this.code = code
+    this.statusCode = statusCode
+  }
 }

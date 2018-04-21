@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+      "lib": [ "es2017" ]
+  },
+  "exclude": [
+      "node_modules"
+  ],
+  "files": [
+      "index.js"
+  ]
+}
