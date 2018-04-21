@@ -234,7 +234,7 @@ function onProxyResponse (proxyRes) {
     }
 
     if (!proxyRes.upgrade) {
-      res.write(createHttpHeader(`HTTP/${proxyRes.httpVersion} ${proxyRes.statusCode}`, proxyRes.headers))
+      res.write(createHttpHeader(`HTTP/${proxyRes.httpVersion} ${proxyRes.statusCode} ${proxyRes.statusMessage}`, proxyRes.headers))
       proxyRes.pipe(res)
     }
   } else {
