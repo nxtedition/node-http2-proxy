@@ -238,18 +238,17 @@ function onProxyResponse (proxyRes) {
       proxyRes.pipe(res)
     }
   } else {
-    setupHeaders(proxyRes.headers)
+    const headers = setupHeaders({ ...proxyRes.headers })
 
-    if (req.httpVersion === '1.0') {
-      delete proxyRes.headers['transfer-encoding']
-      proxyRes.headers[CONNECTION] = req.headers[CONNECTION] || CLOSE
-    } else if (req.httpVersion !== '2.0' && !proxyRes.headers[CONNECTION]) {
-      proxyRes.headers[CONNECTION] = req.headers[CONNECTION] || KEEP_ALIVE
+    if (headers['location'] && /^201|30(1|2|7|8)$/.test(statusCode)) {
+      const u = url.parse(headers['location'])
+      u.host = req.headers[AUTHORITY] || req.headers[HOST]
+      headers['location'] = u.format()
     }
 
     res.statusCode = proxyRes.statusCode
     res.statusMessage = proxyRes.statusMessage
-    for (const [ key, value ] of Object.entries(proxyRes.headers)) {
+    for (const [ key, value ] of Object.entries(headers)) {
       res.setHeader(key, value)
     }
 
