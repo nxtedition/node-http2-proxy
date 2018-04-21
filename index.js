@@ -242,9 +242,6 @@ function onProxyResponse (proxyRes) {
 
     if (req.httpVersion === '1.0') {
       delete proxyRes.headers['transfer-encoding']
-    }
-
-    if (req.httpVersion === '1.0') {
       proxyRes.headers[CONNECTION] = req.headers[CONNECTION] || CLOSE
     } else if (req.httpVersion !== '2.0' && !proxyRes.headers[CONNECTION]) {
       proxyRes.headers[CONNECTION] = req.headers[CONNECTION] || KEEP_ALIVE
