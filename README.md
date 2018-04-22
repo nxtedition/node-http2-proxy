@@ -92,7 +92,15 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000,
-    onRes: (req, res) => helmet(req, res, () => {})
+    onRes: (req, res, proxyRes, headers) => {
+      res.statusCode = proxyRes.statusCode
+      res.statusMessage = proxyRes.statusMessage
+      for (const [ key, value ] of Object.entries(headers)) {
+        res.setHeader(key, value)
+      }
+      helmet(req, res, () => {})
+      proxyRes.pipe(res)
+    }
   }, defaultWebHandler)
 })
 ```

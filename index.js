@@ -33,14 +33,12 @@ const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
-const kEnd = Symbol('end')
 const kHead = Symbol('head')
 
 function proxy (req, res, head, {
   hostname,
   port,
   timeout,
-  end = true,
   proxyTimeout,
   proxyName,
   onReq,
@@ -54,7 +52,6 @@ function proxy (req, res, head, {
   res[kProxyCallback] = callback
   res[kProxyReq] = null
   res[kProxySocket] = null
-  res[kEnd] = end
   res[kHead] = head
 
   let promise
@@ -225,45 +222,37 @@ function onProxyResponse (proxyRes) {
   res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
 
-  proxyRes.on('aborted', onProxyAborted)
+  proxyRes
+    .on('error', onComplete)
+    .on('aborted', onProxyAborted)
+    .on('finish', onComplete)
 
-  if (!res.writeHead) {
-    if (this[kOnProxyRes]) {
-      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes)
+  const headers = setupHeaders({ ...proxyRes.headers })
+
+  if (headers['location'] && /^201|30(1|2|7|8)$/.test(proxyRes.statusCode)) {
+    const u = url.parse(headers['location'])
+    u.host = req.headers[AUTHORITY] || req.headers[HOST]
+    headers['location'] = u.format()
+  }
+
+  if (this[kOnProxyRes]) {
+    try {
+      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes, headers)
+    } catch (err) {
+      onComplete.call(this, err)
     }
-
+  } else if (!res.writeHead) {
     if (!proxyRes.upgrade) {
       res.write(createHttpHeader(`HTTP/${proxyRes.httpVersion} ${proxyRes.statusCode} ${proxyRes.statusMessage}`, proxyRes.headers))
       proxyRes.pipe(res)
     }
   } else {
-    const headers = setupHeaders({ ...proxyRes.headers })
-
-    if (headers['location'] && /^201|30(1|2|7|8)$/.test(proxyRes.statusCode)) {
-      const u = url.parse(headers['location'])
-      u.host = req.headers[AUTHORITY] || req.headers[HOST]
-      headers['location'] = u.format()
-    }
-
-    if (this[kOnProxyRes]) {
-      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes, headers)
-    }
-
     res.statusCode = proxyRes.statusCode
     res.statusMessage = proxyRes.statusMessage
     for (const [ key, value ] of Object.entries(headers)) {
       res.setHeader(key, value)
     }
-
-    proxyRes
-      .on('error', onComplete)
-      .pipe(res, { end: res[kEnd] })
-
-    if (res[kEnd]) {
-      res.on('finish', onComplete)
-    } else {
-      proxyRes.on('end', onComplete)
-    }
+    proxyRes.pipe(res)
   }
 }
 
@@ -285,14 +274,9 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
 
   proxySocket
     .on('error', onComplete)
-    .pipe(res, { end: res[kEnd] })
+    .pipe(res)
+    .on('finish', onComplete)
     .pipe(proxySocket)
-
-  if (res[kEnd]) {
-    res.on('finish', onComplete)
-  } else {
-    proxySocket.on('end', onComplete)
-  }
 }
 
 function createHttpHeader (line, headers) {
