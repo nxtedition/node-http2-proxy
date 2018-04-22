@@ -92,19 +92,19 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000,
-    onRes: (req, res, proxyRes, next) => {
+    onRes: (req, res, proxyRes, callback) => {
       for (const [ key, value ] of Object.entries(proxyRes.headers)) {
         res.setHeader(key, value)
       }
       helmet(req, res, err => {
         if (err) {
-          next(err)
+          callback(err)
         } else {
           res.statusMessage = proxyRes.statusMessage
           res.statusCode = proxyRes.statusCode
           proxyRes
-            .on('aborted', () => next(new Error('aborted')))
-            .on('error', next)
+            .on('aborted', () => callback(new Error('aborted')))
+            .on('error', callback)
             .pipe(res)
         }
       })
@@ -173,10 +173,11 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
   - `onReq(req, options)`: Called before proxy request. If returning a truthy value it will be used as the request.
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
     - `options`: Options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback).
-  - `onRes(req, resOrSocket, proxyRes, proxyHeaders)`: Called before proxy response.
+  - `onRes(req, resOrSocket, proxyRes, callback)`: Called before proxy response.
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
     - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
     - `proxyRes`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
+    - `callback(err)`
 
 ### License
 
