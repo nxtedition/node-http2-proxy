@@ -9,6 +9,7 @@ A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 - [Hop by hop header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers).
 - [Connection header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection).
 - [Via header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via).
+- [Forward header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forward).
 
 ### Installation
 

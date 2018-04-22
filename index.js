@@ -8,6 +8,7 @@ const KEEP_ALIVE = 'keep-alive'
 const PROXY_AUTHORIZATION = 'proxy-authorization'
 const PROXY_CONNECTION = 'proxy-connection'
 const TE = 'te'
+const FORWARDED = 'forwarded'
 const TRAILER = 'trailer'
 const TRANSFER_ENCODING = 'transfer-encoding'
 const UPGRADE = 'upgrade'
@@ -318,6 +319,20 @@ function getRequestHeaders (req) {
       headers[key] = value
     }
   }
+
+  const forwarded = [
+    `by="${req.socket.localAddress}"`,
+    `for="${req.socket.remoteAddress}"`,
+    `proto=${req.socket.encrypted ? 'https' : 'http'}`,
+    `host=${req.headers[AUTHORITY] || req.headers[HOST]}`
+  ].join('; ')
+
+  if (req.headers[FORWARDED]) {
+    req.headers[FORWARDED] += `, ${forwarded}`
+  } else {
+    req.headers[FORWARDED] = `${forwarded}`
+  }
+
   return setupHeaders(headers)
 }
 
