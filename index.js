@@ -35,15 +35,21 @@ const kProxySocket = Symbol('proxySocket')
 const kOnProxyRes = Symbol('onProxyRes')
 const kHead = Symbol('head')
 
-function proxy (req, res, head, {
-  hostname,
-  port,
-  timeout,
-  proxyTimeout,
-  proxyName,
-  onReq,
-  onRes
-}, callback) {
+function proxy (req, res, head, options, callback) {
+  if (typeof options === 'string') {
+    options = new url.URL(options)
+  }
+
+  const {
+    hostname,
+    port,
+    timeout,
+    proxyTimeout,
+    proxyName,
+    onReq,
+    onRes
+  } = options
+
   req[kRes] = res
 
   res[kSelf] = this
@@ -106,7 +112,7 @@ function proxy (req, res, head, {
     req.setTimeout(timeout)
   }
 
-  const options = {
+  const reqOptions = {
     method: req.method,
     hostname,
     port,
@@ -118,11 +124,11 @@ function proxy (req, res, head, {
   let proxyReq
 
   if (onReq) {
-    proxyReq = onReq.call(res[kSelf], req, options)
+    proxyReq = onReq.call(res[kSelf], req, reqOptions)
   }
 
   if (!proxyReq) {
-    proxyReq = http.request(options)
+    proxyReq = http.request(reqOptions)
   }
 
   proxyReq[kReq] = req
