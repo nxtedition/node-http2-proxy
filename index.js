@@ -245,14 +245,14 @@ function onProxyResponse (proxyRes) {
       headers['location'] = u.format()
     }
 
+    if (this[kOnProxyRes]) {
+      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes, headers)
+    }
+
     res.statusCode = proxyRes.statusCode
     res.statusMessage = proxyRes.statusMessage
     for (const [ key, value ] of Object.entries(headers)) {
       res.setHeader(key, value)
-    }
-
-    if (this[kOnProxyRes]) {
-      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes)
     }
 
     proxyRes
