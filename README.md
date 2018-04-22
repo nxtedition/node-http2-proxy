@@ -2,24 +2,6 @@
 
 A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 
-```js
-const finalhandler = require('finalhandler')
-
-const defaultWebHandler = (err, req, res) => {
-  if (err) {
-    console.error('proxy error', err)
-    finalhandler(req, res)(err)
-  }
-}
-
-const defaultWSHandler = (err, req, socket, head) => {
-  if (err) {
-    console.error('proxy error', err)
-    socket.destroy()
-  }
-}
-```
-
 ### Features
 
 - Proxies HTTP 2, HTTP 1 and WebSocket.
@@ -61,6 +43,27 @@ import http from 'http'
 
 const server = http.createServer()
 server.listen(8000)
+```
+
+You need to use an final and/or error handler since errored responses won't be destroyed.
+
+
+```js
+const finalhandler = require('finalhandler')
+
+const defaultWebHandler = (err, req, res) => {
+  if (err) {
+    console.error('proxy error', err)
+    finalhandler(req, res)(err)
+  }
+}
+
+const defaultWSHandler = (err, req, socket, head) => {
+  if (err) {
+    console.error('proxy error', err)
+    socket.destroy()
+  }
+}
 ```
 
 #### Proxy HTTP/2, HTTP/1 and WebSocket
