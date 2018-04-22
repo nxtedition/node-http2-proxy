@@ -102,11 +102,7 @@ server.on('request', (req, res) => {
         } else {
           res.statusMessage = proxyRes.statusMessage
           res.statusCode = proxyRes.statusCode
-          proxyRes
-            .on('aborted', () => callback(new Error('aborted')))
-            .on('error', callback)
-            .pipe(res)
-            .on('finish', callback)
+          proxyRes.pipe(res)
         }
       })
     }

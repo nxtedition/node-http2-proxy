@@ -221,6 +221,10 @@ function onProxyResponse (proxyRes) {
   res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
 
+  proxyRes
+    .on('aborted', onProxyAborted)
+    .on('error', onComplete)
+
   const headers = setupHeaders(proxyRes.headers)
 
   if (headers['location'] && /^201|30(1|2|7|8)$/.test(proxyRes.statusCode)) {
@@ -237,10 +241,6 @@ function onProxyResponse (proxyRes) {
     }
     return
   }
-
-  proxyRes
-    .on('aborted', onProxyAborted)
-    .on('error', onComplete)
 
   if (!res.writeHead) {
     if (!proxyRes.upgrade) {
