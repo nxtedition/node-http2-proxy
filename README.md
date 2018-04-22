@@ -26,11 +26,11 @@ const defaultWSHandler = (err, req, socket, head) => {
 
 ### Features
 
-- Proxies HTTP 2, HTTP 1 and WebSocket
-- Simple and high performance
+- Proxies HTTP 2, HTTP 1 and WebSocket.
+- Simple and high performance.
 - [Hop by hop header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers).
-- [Connection header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection)
-- [Via header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via)
+- [Connection header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection).
+- [Via header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via).
 
 ### Installation
 
