@@ -44,7 +44,7 @@ function proxy (req, res, head, options, callback) {
   const {
     hostname,
     port,
-    protocol = 'http',
+    protocol,
     timeout,
     proxyTimeout,
     proxyName,
@@ -131,7 +131,7 @@ function proxy (req, res, head, options, callback) {
 
   if (!proxyReq) {
     let agent
-    if (/(http|ws):?/.test(protocol)) {
+    if (protocol == null || /(http|ws):?/.test(protocol)) {
       agent = http
     } else if (/(http|ws)s:?/.test(protocol)) {
       agent = https
