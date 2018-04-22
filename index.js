@@ -301,10 +301,10 @@ function createHttpHeader (line, headers) {
   let head = line
   for (const [ key, value ] of Object.entries(headers)) {
     if (!Array.isArray(value)) {
-      head += '\r\n' + key + ': ' + value
+      head += `\r\n${key}: ${value}`
     } else {
       for (let i = 0; i < value.length; i++) {
-        head += '\r\n' + key + ': ' + value[i]
+        head += `\r\n${key}: ${value[i]}`
       }
     }
   }
