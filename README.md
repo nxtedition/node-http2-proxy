@@ -92,13 +92,13 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000,
-    onRes: (req, res, { statusCode, statusMessage, headers }) => {
-      for (const [ key, value ] of Object.entries(headers)) {
+    onRes: (req, res, proxyRes) => {
+      for (const [ key, value ] of Object.entries(proxyRes.headers)) {
         res.setHeader(key, value)
       }
       helmet(req, res, () => {
-        res.statusMessage = statusMessage
-        res.statusCode = statusCode
+        res.statusMessage = proxyRes.statusMessage
+        res.statusCode = proxyRes.statusCode
         proxyRes.pipe(res)
       })
     }
