@@ -156,7 +156,6 @@ function onComplete (err) {
     .removeListener('timeout', onRequestTimeout)
 
   res
-    .removeListener('finish', onComplete)
     .removeListener('close', onComplete)
 
   if (res[kProxySocket]) {
@@ -222,11 +221,6 @@ function onProxyResponse (proxyRes) {
   res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
 
-  proxyRes
-    .on('error', onComplete)
-    .on('aborted', onProxyAborted)
-    .on('finish', onComplete)
-
   const headers = setupHeaders(proxyRes.headers)
 
   if (headers['location'] && /^201|30(1|2|7|8)$/.test(proxyRes.statusCode)) {
@@ -237,11 +231,18 @@ function onProxyResponse (proxyRes) {
 
   if (this[kOnProxyRes]) {
     try {
-      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes)
+      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes, onComplete)
     } catch (err) {
       onComplete.call(this, err)
     }
-  } else if (!res.writeHead) {
+    return
+  }
+
+  proxyRes
+    .on('aborted', onProxyAborted)
+    .on('error', onComplete)
+
+  if (!res.writeHead) {
     if (!proxyRes.upgrade) {
       res.write(createHttpHeader(`HTTP/${proxyRes.httpVersion} ${proxyRes.statusCode} ${proxyRes.statusMessage}`, proxyRes.headers))
       proxyRes.pipe(res)

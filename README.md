@@ -92,14 +92,21 @@ server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
     port: 9000,
-    onRes: (req, res, proxyRes) => {
+    onRes: (req, res, proxyRes, next) => {
       for (const [ key, value ] of Object.entries(proxyRes.headers)) {
         res.setHeader(key, value)
       }
-      helmet(req, res, () => {
-        res.statusMessage = proxyRes.statusMessage
-        res.statusCode = proxyRes.statusCode
-        proxyRes.pipe(res)
+      helmet(req, res, err => {
+        if (err) {
+          next(err)
+        } else {
+          res.statusMessage = proxyRes.statusMessage
+          res.statusCode = proxyRes.statusCode
+          proxyRes
+            .on('aborted', () => next(new Error('aborted')))
+            .on('error', next)
+            .pipe(res)
+        }
       })
     }
   }, defaultWebHandler)
