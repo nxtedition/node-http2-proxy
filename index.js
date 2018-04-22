@@ -110,7 +110,7 @@ function proxy (req, res, head, {
     method: req.method,
     hostname,
     port,
-    path: req.url,
+    path: req.originalUrl || req.url,
     headers,
     timeout: proxyTimeout
   }
