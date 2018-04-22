@@ -317,14 +317,7 @@ function getRequestHeaders (req) {
       headers[key] = value
     }
   }
-
-  setupHeaders(headers)
-
-  if ((req.method === 'DELETE' || req.method === 'OPTIONS') && !req.headers['content-length']) {
-    headers['content-length'] = '0'
-  }
-
-  return headers
+  return setupHeaders(headers)
 }
 
 function setupSocket (socket) {
