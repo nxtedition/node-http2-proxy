@@ -45,6 +45,7 @@ function proxy (req, res, head, options, callback) {
     hostname,
     port,
     protocol,
+    path = req.originalUrl || req.url,
     timeout,
     proxyTimeout,
     proxyName,
@@ -118,7 +119,7 @@ function proxy (req, res, head, options, callback) {
     method: req.method,
     hostname,
     port,
-    path: req.originalUrl || req.url,
+    path,
     headers,
     timeout: proxyTimeout
   }

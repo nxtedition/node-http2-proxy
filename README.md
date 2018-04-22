@@ -152,6 +152,7 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
   - `hostname`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target hostname.
   - `port`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target port.
   - `protocol`: 'string' agent protocol ('http' or 'https'). Defaults to 'http'.
+  - `path`: 'string' target pathname. Defaults to `req.originalUrl || req.url`.
   - `proxyTimeout`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout.
   - `proxyName`: Proxy name used for **Via** header.
   - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout.
