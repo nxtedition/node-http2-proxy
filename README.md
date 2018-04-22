@@ -2,10 +2,6 @@
 
 A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 
-### Version 3 Notes
-
-- No longer handles ends or destroys response on error. Use an appropriate error handler such as `finalhandler`.
-
 ```js
 const finalhandler = require('finalhandler')
 
