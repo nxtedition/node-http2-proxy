@@ -1,5 +1,11 @@
 const http = require('http')
+const https = require('https')
 const url = require('url')
+
+const PROTOCOLS = {
+  http,
+  https
+}
 
 const CONNECTION = 'connection'
 const HOST = 'host'
@@ -43,6 +49,7 @@ function proxy (req, res, head, options, callback) {
   const {
     hostname,
     port,
+    protocol = 'http',
     timeout,
     proxyTimeout,
     proxyName,
@@ -128,7 +135,12 @@ function proxy (req, res, head, options, callback) {
   }
 
   if (!proxyReq) {
-    proxyReq = http.request(reqOptions)
+    const agent = PROTOCOLS[protocol]
+    if (!agent) {
+      process.nextTick(onComplete.call, res, new HttpError(`invalid protocol`, null, 500))
+      return promise
+    }
+    proxyReq = agent.request(reqOptions)
   }
 
   proxyReq[kReq] = req
@@ -347,6 +359,6 @@ class HttpError extends Error {
   constructor (msg, code, statusCode) {
     super(msg)
     this.code = code
-    this.statusCode = statusCode
+    this.statusCode = statusCode || 500
   }
 }
