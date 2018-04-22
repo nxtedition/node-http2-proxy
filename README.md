@@ -106,6 +106,7 @@ server.on('request', (req, res) => {
             .on('aborted', () => callback(new Error('aborted')))
             .on('error', callback)
             .pipe(res)
+            .on('finish', callback)
         }
       })
     }
