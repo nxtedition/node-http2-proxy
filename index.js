@@ -1,7 +1,7 @@
 const http = require('http')
+const url = require('url')
 
 const CONNECTION = 'connection'
-const FORWARDED = 'forwarded'
 const HOST = 'host'
 const KEEP_ALIVE = 'keep-alive'
 const PROXY_AUTHORIZATION = 'proxy-authorization'
@@ -13,7 +13,6 @@ const UPGRADE = 'upgrade'
 const VIA = 'via'
 const AUTHORITY = ':authority'
 const HTTP2_SETTINGS = 'http2-settings'
-const CLOSE = 'close'
 
 module.exports = {
   ws (req, socket, head, options, callback) {
@@ -240,7 +239,7 @@ function onProxyResponse (proxyRes) {
   } else {
     const headers = setupHeaders({ ...proxyRes.headers })
 
-    if (headers['location'] && /^201|30(1|2|7|8)$/.test(statusCode)) {
+    if (headers['location'] && /^201|30(1|2|7|8)$/.test(proxyRes.statusCode)) {
       const u = url.parse(headers['location'])
       u.host = req.headers[AUTHORITY] || req.headers[HOST]
       headers['location'] = u.format()
@@ -312,9 +311,6 @@ function createHttpHeader (line, headers) {
 }
 
 function getRequestHeaders (req) {
-  const host = req.headers[AUTHORITY] || req.headers[HOST]
-  const forwarded = req.headers[FORWARDED]
-
   const headers = {}
   for (const [ key, value ] of Object.entries(req.headers)) {
     if (key.charAt(0) !== ':') {
