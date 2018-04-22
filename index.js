@@ -227,7 +227,7 @@ function onProxyResponse (proxyRes) {
     .on('aborted', onProxyAborted)
     .on('finish', onComplete)
 
-  const headers = setupHeaders({ ...proxyRes.headers })
+  const headers = setupHeaders(proxyRes.headers)
 
   if (headers['location'] && /^201|30(1|2|7|8)$/.test(proxyRes.statusCode)) {
     const u = url.parse(headers['location'])
@@ -237,7 +237,7 @@ function onProxyResponse (proxyRes) {
 
   if (this[kOnProxyRes]) {
     try {
-      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes, headers)
+      this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes)
     } catch (err) {
       onComplete.call(this, err)
     }
