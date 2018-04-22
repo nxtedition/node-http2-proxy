@@ -73,7 +73,7 @@ function proxy (req, res, head, options, callback) {
   if (proxyName && req.headers[VIA]) {
     for (const name of req.headers[VIA].split(',')) {
       if (sanitize(name).endsWith(proxyName.toLowerCase())) {
-        process.nextTick(onComplete.call, res, new HttpError('loop detected', null, 508))
+        process.nextTick(onComplete.bind(res), new HttpError('loop detected', null, 508))
         return promise
       }
     }
@@ -83,12 +83,12 @@ function proxy (req, res, head, options, callback) {
 
   if (head !== undefined) {
     if (req.method !== 'GET') {
-      process.nextTick(onComplete.call, res, new HttpError('method not allowed', null, 405))
+      process.nextTick(onComplete.bind(res), new HttpError('method not allowed', null, 405))
       return promise
     }
 
     if (sanitize(req.headers[UPGRADE]) !== 'websocket') {
-      process.nextTick(onComplete.call, res, new HttpError('bad request', null, 400))
+      process.nextTick(onComplete.bind(res), new HttpError('bad request', null, 400))
       return promise
     }
 
