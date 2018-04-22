@@ -2,11 +2,6 @@ const http = require('http')
 const https = require('https')
 const url = require('url')
 
-const PROTOCOLS = {
-  http,
-  https
-}
-
 const CONNECTION = 'connection'
 const HOST = 'host'
 const KEEP_ALIVE = 'keep-alive'
@@ -135,9 +130,13 @@ function proxy (req, res, head, options, callback) {
   }
 
   if (!proxyReq) {
-    const agent = PROTOCOLS[protocol]
-    if (!agent) {
-      process.nextTick(onComplete.call, res, new HttpError(`invalid protocol`, null, 500))
+    let agent
+    if (/(http|ws):?/.test(protocol)) {
+      agent = http
+    } else if (/(http|ws)s:?/.test(protocol)) {
+      agent = https
+    } else {
+      process.nextTick(onComplete.bind(res), new HttpError(`invalid protocol`, null, 500))
       return promise
     }
     proxyReq = agent.request(reqOptions)
