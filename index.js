@@ -276,7 +276,6 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   proxySocket
     .on('error', onComplete)
     .pipe(res)
-    .on('finish', onComplete)
     .pipe(proxySocket)
 }
 
