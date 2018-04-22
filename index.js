@@ -324,7 +324,7 @@ function getRequestHeaders (req) {
     `by="${req.socket.localAddress}"`,
     `for="${req.socket.remoteAddress}"`,
     `proto=${req.socket.encrypted ? 'https' : 'http'}`,
-    `host=${req.headers[AUTHORITY] || req.headers[HOST]}`
+    `host=${req.headers[AUTHORITY] || req.headers[HOST] || ''}`
   ].join('; ')
 
   if (req.headers[FORWARDED]) {
