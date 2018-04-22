@@ -268,7 +268,6 @@ function onProxyResponse (proxyRes) {
     }
   } else {
     res.statusCode = proxyRes.statusCode
-    res.statusMessage = proxyRes.statusMessage
     for (const [ key, value ] of Object.entries(headers)) {
       res.setHeader(key, value)
     }
