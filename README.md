@@ -31,7 +31,6 @@ const defaultWSHandler = (err, req, socket, head) => {
 - [Hop by hop header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers).
 - [Connection header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection)
 - [Via header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via)
-- [Forwarded header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forwarded)
 
 ### Installation
 
