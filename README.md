@@ -22,6 +22,27 @@ $ npm install http2-proxy
 
 Request & Response errors are emitted to the server object either as `clientError` for http/1 or `streamError` for http/2. See the NodeJS documentation for further details.
 
+
+You need to use an final and/or error handler since errored responses won't be destroyed.
+
+```js
+const finalhandler = require('finalhandler')
+
+const defaultWebHandler = (err, req, res) => {
+  if (err) {
+    console.error('proxy error', err)
+    finalhandler(req, res)(err)
+  }
+}
+
+const defaultWSHandler = (err, req, socket, head) => {
+  if (err) {
+    console.error('proxy error', err)
+    socket.destroy()
+  }
+}
+```
+
 ```
 
 ### HTTP/1 API
@@ -43,27 +64,6 @@ import http from 'http'
 
 const server = http.createServer()
 server.listen(8000)
-```
-
-You need to use an final and/or error handler since errored responses won't be destroyed.
-
-
-```js
-const finalhandler = require('finalhandler')
-
-const defaultWebHandler = (err, req, res) => {
-  if (err) {
-    console.error('proxy error', err)
-    finalhandler(req, res)(err)
-  }
-}
-
-const defaultWSHandler = (err, req, socket, head) => {
-  if (err) {
-    console.error('proxy error', err)
-    socket.destroy()
-  }
-}
 ```
 
 #### Proxy HTTP/2, HTTP/1 and WebSocket
