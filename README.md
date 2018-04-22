@@ -122,7 +122,7 @@ server.on('request', (req, res) => {
 })
 ```
 
-#### HTTPS Redirects
+#### HTTPS
 
 ```js
 const https = require('https')
