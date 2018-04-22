@@ -324,33 +324,8 @@ function getRequestHeaders (req) {
 
   setupHeaders(headers)
 
-  if (req.socket) {
-    headers[FORWARDED] = `by=${req.socket.localAddress}`
-    headers[FORWARDED] += `; for=${req.socket.remoteAddress}`
-  }
-
-  if (forwarded) {
-    const expr = /for=\s*([^\s]+)/ig
-    while (true) {
-      const m = expr.exec(forwarded)
-      if (!m) {
-        break
-      }
-      headers[FORWARDED] += `; for=${m[1]}`
-    }
-  }
-
-  if (host) {
-    headers[FORWARDED] += `; host=${host}`
-  }
-
-  if (req.socket) {
-    headers[FORWARDED] += `; proto=${req.socket.encrypted ? 'https' : 'http'}`
-  }
-
   if ((req.method === 'DELETE' || req.method === 'OPTIONS') && !req.headers['content-length']) {
     headers['content-length'] = '0'
-    delete headers['transfer-encoding']
   }
 
   return headers
