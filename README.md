@@ -43,8 +43,6 @@ const defaultWSHandler = (err, req, socket, head) => {
 }
 ```
 
-```
-
 ### HTTP/1 API
 
 You must pass `allowHTTP1: true` to the `http2.createServer` or `http2.createSecureServer` factory methods.
@@ -85,7 +83,7 @@ server.on('upgrade', (req, socket, head) => {
 
 #### Use [Helmet](https://www.npmjs.com/package/helmet) to secure response headers
 
-```javascript
+```js
 server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
@@ -110,7 +108,7 @@ server.on('request', (req, res) => {
 
 #### Add x-forwarded headers
 
-```javascript
+```js
 server.on('request', (req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost'
@@ -126,7 +124,7 @@ server.on('request', (req, res) => {
 
 #### HTTPS Redirects
 
-```javascript
+```js
 const https = require('https')
 
 server.on('request', (req, res) => {
@@ -140,7 +138,7 @@ server.on('request', (req, res) => {
 
 #### Follow Redirects
 
-```javascript
+```js
 const http = require('follow-redirects').http
 
 server.on('request', (req, res) => {
