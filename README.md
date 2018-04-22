@@ -130,6 +130,20 @@ server.on('request', (req, res) => {
 })
 ```
 
+#### HTTPS Redirects
+
+```javascript
+const https = require('https')
+
+server.on('request', (req, res) => {
+  proxy.web(req, res, {
+    hostname: 'localhost'
+    port: 9000,
+    onReq: (req, options) => https.request(options)
+  }, defaultWebHandler)
+})
+```
+
 #### Follow Redirects
 
 ```javascript
