@@ -22,8 +22,7 @@ $ npm install http2-proxy
 
 Request & Response errors are emitted to the server object either as `clientError` for http/1 or `streamError` for http/2. See the NodeJS documentation for further details.
 
-
-You need to use an final and/or error handler since errored responses won't be destroyed.
+You need to use an final and/or error handler since errored responses won't be cleaned up automatically.
 
 ```js
 const finalhandler = require('finalhandler')
