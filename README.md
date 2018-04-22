@@ -81,29 +81,22 @@ server.on('upgrade', (req, socket, head) => {
 })
 ```
 
-#### Use [Helmet](https://www.npmjs.com/package/helmet) to secure response headers
+#### Use [Connect](https://www.npmjs.com/package/connect) & [Helmet](https://www.npmjs.com/package/helmet)
 
 ```js
-server.on('request', (req, res) => {
-  proxy.web(req, res, {
+const app = connect()
+app.use(helmet())
+app.use((req, res, next) => proxy
+  .web(req, res, {
     hostname: 'localhost'
-    port: 9000,
-    onRes: (req, res, proxyRes, callback) => {
-      for (const [ key, value ] of Object.entries(proxyRes.headers)) {
-        res.setHeader(key, value)
-      }
-      helmet(req, res, err => {
-        if (err) {
-          callback(err)
-        } else {
-          res.statusMessage = proxyRes.statusMessage
-          res.statusCode = proxyRes.statusCode
-          proxyRes.pipe(res)
-        }
-      })
+    port: 9000
+  }, err => {
+    if (err) {
+      next(err)
     }
-  }, defaultWebHandler)
-})
+  })
+)
+server.on('request', app)
 ```
 
 #### Add x-forwarded headers
