@@ -126,26 +126,26 @@ function proxy (req, res, head, options, callback) {
 
   let proxyReq
 
-  if (onReq) {
-    try {
+  try {
+    if (onReq) {
       proxyReq = onReq.call(res[kSelf], req, reqOptions)
-
-      if (!proxyReq) {
-        let agent
-        if (protocol == null || /(http|ws):?/.test(protocol)) {
-          agent = http
-        } else if (/(http|ws)s:?/.test(protocol)) {
-          agent = https
-        } else {
-          process.nextTick(onComplete.bind(res), new HttpError(`invalid protocol`, null, 500))
-          return promise
-        }
-        proxyReq = agent.request(reqOptions)
-      }
-    } catch (err) {
-      process.nextTick(onComplete.bind(res), err)
-      return
     }
+
+    if (!proxyReq) {
+      let agent
+      if (protocol == null || /(http|ws):?/.test(protocol)) {
+        agent = http
+      } else if (/(http|ws)s:?/.test(protocol)) {
+        agent = https
+      } else {
+        process.nextTick(onComplete.bind(res), new HttpError(`invalid protocol`, null, 500))
+        return promise
+      }
+      proxyReq = agent.request(reqOptions)
+    }
+  } catch (err) {
+    process.nextTick(onComplete.bind(res), err)
+    return
   }
 
   proxyReq[kReq] = req
