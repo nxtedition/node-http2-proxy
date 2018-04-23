@@ -324,7 +324,7 @@ function createHttpHeader (line, headers) {
     }
   }
   head += '\r\n\r\n'
-  return head
+  return Buffer.from(head, 'ascii')
 }
 
 function getRequestHeaders (req) {
