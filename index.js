@@ -181,34 +181,40 @@ function onComplete (err) {
     .removeListener('aborted', onComplete)
     .removeListener('timeout', onRequestTimeout)
 
-  if (res[kProxySocket]) {
-    res[kProxySocket]
+  const proxySocket = res[kProxySocket]
+  res[kProxySocket] = null
+
+  const proxyRes = res[kProxyRes]
+  res[kProxyRes] = null
+
+  const proxyReq = res[kProxyReq]
+  res[kProxyReq] = null
+
+  if (proxySocket) {
+    proxySocket
       .removeListener('error', onComplete)
       .removeListener('close', onProxyAborted)
-    res[kProxySocket].on('error', noop)
-    res[kProxySocket].destroy()
-    res[kProxySocket] = null
+    proxySocket.on('error', noop)
+    proxySocket.destroy()
   }
 
-  if (res[kProxyRes]) {
-    res[kProxyRes]
+  if (proxyRes) {
+    proxyRes
       .removeListener('error', onComplete)
       .removeListener('end', onComplete)
       .removeListener('aborted', onProxyAborted)
-    res[kProxyRes].on('error', noop)
-    res[kProxyRes].destroy()
-    res[kProxyRes] = null
+    proxyRes.on('error', noop)
+    proxyRes.destroy()
   }
 
-  if (res[kProxyReq]) {
-    res[kProxyReq]
+  if (proxyReq) {
+    proxyReq
       .removeListener('error', onComplete)
       .removeListener('timeout', onProxyTimeout)
       .removeListener('response', onProxyResponse)
       .removeListener('upgrade', onProxyUpgrade)
-    res[kProxyReq].on('error', noop)
-    res[kProxyReq].abort()
-    res[kProxyReq] = null
+    proxyReq.on('error', noop)
+    proxyReq.abort()
   }
 
   if (err) {
@@ -222,7 +228,11 @@ function onComplete (err) {
     }
   }
 
-  res[kProxyCallback].call(res[kSelf], err, req, res, res[kHead])
+  if (res[kHead] === undefined) {
+    res[kProxyCallback].call(res[kSelf], err, req, res, proxyReq, proxyRes)
+  } else {
+    res[kProxyCallback].call(res[kSelf], err, req, res, res[kHead], proxyReq, proxyRes, proxySocket)
+  }
 }
 
 function onRequestTimeout () {
