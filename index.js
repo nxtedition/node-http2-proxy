@@ -229,9 +229,9 @@ function onComplete (err) {
   }
 
   if (res[kHead] === undefined) {
-    res[kProxyCallback].call(res[kSelf], err, req, res, proxyReq, proxyRes)
+    res[kProxyCallback].call(res[kSelf], err, req, res, { proxyReq, proxyRes })
   } else {
-    res[kProxyCallback].call(res[kSelf], err, req, res, res[kHead], proxyReq, proxyRes, proxySocket)
+    res[kProxyCallback].call(res[kSelf], err, req, res, res[kHead], { proxyReq, proxyRes, proxySocket })
   }
 }
 
