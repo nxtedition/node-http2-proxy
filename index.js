@@ -53,6 +53,13 @@ function proxy (req, res, head, options, callback) {
     onReq,
     onRes
   } = options
+  let promise
+
+  if (!callback) {
+    promise = new Promise((resolve, reject) => {
+      callback = (err, ...args) => err ? reject(err) : resolve(args)
+    })
+  }
 
   req[kRes] = res
 
@@ -63,14 +70,6 @@ function proxy (req, res, head, options, callback) {
   res[kProxyReq] = null
   res[kProxySocket] = null
   res[kHead] = head
-
-  let promise
-
-  if (!callback) {
-    promise = new Promise((resolve, reject) => {
-      callback = (err, ...args) => err ? reject(err) : resolve(args)
-    })
-  }
 
   if (proxyName && req.headers[VIA]) {
     for (const name of req.headers[VIA].split(',')) {
