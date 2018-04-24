@@ -260,14 +260,6 @@ function onProxyResponse (proxyRes) {
 
   const headers = setupHeaders(proxyRes.headers)
 
-  if (headers['location'] && /^201|30(1|2|7|8)$/.test(proxyRes.statusCode)) {
-    const u = url.parse(headers['location'])
-    if (u.host) {
-      u.host = req.headers[AUTHORITY] || req.headers[HOST] || ''
-    }
-    headers['location'] = u.format()
-  }
-
   if (this[kOnProxyRes]) {
     try {
       this[kOnProxyRes].call(res[kSelf], this[kReq], res, proxyRes, onComplete)
