@@ -266,10 +266,7 @@ function onProxyResponse (proxyRes) {
     } catch (err) {
       onComplete.call(this, err)
     }
-    return
-  }
-
-  if (!res.writeHead) {
+  } else if (!res.writeHead) {
     if (!proxyRes.upgrade) {
       res.write(createHttpHeader(`HTTP/${proxyRes.httpVersion} ${proxyRes.statusCode} ${proxyRes.statusMessage}`, proxyRes.headers))
       proxyRes.pipe(res)
