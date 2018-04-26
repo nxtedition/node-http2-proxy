@@ -18,10 +18,10 @@ const HTTP2_SETTINGS = 'http2-settings'
 
 module.exports = {
   ws (req, socket, head, options, callback) {
-    return proxy(req, socket, head || null, options, callback)
+    return proxy.call(this, req, socket, head || null, options, callback)
   },
   web (req, res, options, callback) {
-    return proxy(req, res, undefined, options, callback)
+    return proxy.call(this, req, res, undefined, options, callback)
   }
 }
 
