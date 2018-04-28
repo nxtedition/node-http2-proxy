@@ -155,10 +155,12 @@ function proxy (req, res, head, options, callback) {
 
   res
     .on('close', onComplete)
+    .on('error', onComplete)
 
   req
     .on('close', onComplete)
     .on('aborted', onComplete)
+    .on('error', onComplete)
     .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
     .on('error', onComplete)
@@ -175,10 +177,12 @@ function onComplete (err) {
 
   res
     .removeListener('close', onComplete)
+    .removeListener('error', onComplete)
 
   req
     .removeListener('close', onComplete)
     .removeListener('aborted', onComplete)
+    .removeListener('error', onComplete)
     .removeListener('timeout', onRequestTimeout)
 
   const proxySocket = res[kProxySocket]
