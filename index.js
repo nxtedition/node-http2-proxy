@@ -199,7 +199,9 @@ function onComplete (err) {
       .removeListener('error', onComplete)
       .removeListener('close', onProxyAborted)
     proxySocket.on('error', noop)
-    proxySocket.destroy()
+    if (proxySocket.destroy) {
+      proxySocket.destroy()
+    }
   }
 
   if (proxyRes) {
@@ -208,7 +210,9 @@ function onComplete (err) {
       .removeListener('end', onComplete)
       .removeListener('aborted', onProxyAborted)
     proxyRes.on('error', noop)
-    proxyRes.destroy()
+    if (proxyRes.destroy) {
+      proxyRes.destroy()
+    }
   }
 
   if (proxyReq) {
@@ -218,7 +222,11 @@ function onComplete (err) {
       .removeListener('response', onProxyResponse)
       .removeListener('upgrade', onProxyUpgrade)
     proxyReq.on('error', noop)
-    proxyReq.abort()
+    if (proxyReq.abort) {
+      proxyReq.abort()
+    } else if (proxyReq.destroy) {
+      proxyReq.destroy()
+    }
   }
 
   if (err) {
