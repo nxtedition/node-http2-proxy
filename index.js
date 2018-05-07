@@ -145,7 +145,7 @@ function proxy (req, res, head, options, callback) {
     }
   } catch (err) {
     process.nextTick(onComplete.bind(res), err)
-    return
+    return promise
   }
 
   proxyReq[kReq] = req
