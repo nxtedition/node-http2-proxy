@@ -70,6 +70,7 @@ function proxy (req, res, head, options, callback) {
   res[kProxyReq] = null
   res[kProxySocket] = null
   res[kHead] = head
+  res[kOnProxyRes] = onRes
 
   if (proxyName && req.headers[VIA]) {
     for (const name of req.headers[VIA].split(',')) {
@@ -151,7 +152,6 @@ function proxy (req, res, head, options, callback) {
   proxyReq[kReq] = req
   proxyReq[kRes] = res
   res[kProxyReq] = proxyReq
-  proxyReq[kOnProxyRes] = onRes
 
   res
     .on('close', onComplete)
@@ -272,9 +272,9 @@ function onProxyResponse (proxyRes) {
 
   const headers = setupHeaders(proxyRes.headers)
 
-  if (this[kOnProxyRes]) {
+  if (res[kOnProxyRes]) {
     try {
-      this[kOnProxyRes].call(res[kSelf], req, res, proxyRes, onComplete)
+      res[kOnProxyRes].call(res[kSelf], req, res, proxyRes, onComplete)
     } catch (err) {
       onComplete.call(this, err)
     }
