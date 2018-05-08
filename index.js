@@ -155,6 +155,8 @@ function proxy (req, res, head, options, callback) {
 
   res
     .on('close', onComplete)
+    // XXX: Node doesn't always emit 'close' after 'finish'.
+    .on('finish', onComplete)
     .on('error', onComplete)
 
   req
@@ -177,6 +179,7 @@ function onComplete (err) {
 
   res
     .removeListener('close', onComplete)
+    .removeListener('finish', onComplete)
     .removeListener('error', onComplete)
 
   req
