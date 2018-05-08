@@ -139,8 +139,7 @@ function proxy (req, res, head, options, callback) {
       } else if (/(http|ws)s:?/.test(protocol)) {
         agent = https
       } else {
-        process.nextTick(onComplete.bind(res), new HttpError(`invalid protocol`, null, 500))
-        return promise
+        throw new HttpError(`invalid protocol`, null, 500)
       }
       proxyReq = agent.request(reqOptions)
     }
