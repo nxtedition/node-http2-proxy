@@ -155,7 +155,7 @@ function proxy (req, res, head, options, callback) {
 
   res
     .on('close', onComplete)
-    // XXX: Node doesn't always emit 'close' after 'finish'.
+    // XXX: Node doesn't always emit 'close' after 'finish'. See, https://github.com/nodejs/node/issues/20600.
     .on('finish', onComplete)
     .on('error', onComplete)
 
