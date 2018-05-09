@@ -61,9 +61,9 @@ function proxy (req, res, head, options, callback) {
 
   req[kRes] = res
 
-  res[kSelf] = this
   res[kReq] = req
   res[kRes] = res
+  res[kSelf] = this
   res[kProxyCallback] = callback
   res[kProxyReq] = null
   res[kProxySocket] = null
@@ -179,7 +179,17 @@ function onComplete (err) {
     return
   }
 
-  res[kProxyCallback] = null
+  const proxySocket = res[kProxySocket]
+  const proxyRes = res[kProxyRes]
+  const proxyReq = res[kProxyReq]
+
+  res[kProxySocket] = undefined
+  res[kProxyRes] = undefined
+  res[kProxyReq] = undefined
+  res[kSelf] = undefined
+  res[kHead] = undefined
+  res[kOnProxyRes] = undefined
+  res[kProxyCallback] = undefined
 
   res
     .removeListener('close', onComplete)
@@ -191,15 +201,6 @@ function onComplete (err) {
     .removeListener('aborted', onComplete)
     .removeListener('error', onComplete)
     .removeListener('timeout', onRequestTimeout)
-
-  const proxySocket = res[kProxySocket]
-  res[kProxySocket] = null
-
-  const proxyRes = res[kProxyRes]
-  res[kProxyRes] = null
-
-  const proxyReq = res[kProxyReq]
-  res[kProxyReq] = null
 
   if (proxySocket) {
     if (proxySocket.destroy) {
