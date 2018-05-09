@@ -25,8 +25,6 @@ module.exports = {
   }
 }
 
-function noop () {}
-
 const kReq = Symbol('req')
 const kRes = Symbol('res')
 const kSelf = Symbol('self')
@@ -175,6 +173,14 @@ function onComplete (err) {
   const res = this[kRes]
   const req = res[kReq]
 
+  const callback = res[kProxyCallback]
+
+  if (!callback) {
+    return
+  }
+
+  res[kProxyCallback] = null
+
   res
     .removeListener('close', onComplete)
     .removeListener('finish', onComplete)
@@ -196,33 +202,18 @@ function onComplete (err) {
   res[kProxyReq] = null
 
   if (proxySocket) {
-    proxySocket
-      .removeListener('error', onComplete)
-      .removeListener('close', onProxyAborted)
-    proxySocket.on('error', noop)
     if (proxySocket.destroy) {
       proxySocket.destroy()
     }
   }
 
   if (proxyRes) {
-    proxyRes
-      .removeListener('error', onComplete)
-      .removeListener('end', onComplete)
-      .removeListener('aborted', onProxyAborted)
-    proxyRes.on('error', noop)
     if (proxyRes.destroy) {
       proxyRes.destroy()
     }
   }
 
   if (proxyReq) {
-    proxyReq
-      .removeListener('error', onComplete)
-      .removeListener('timeout', onProxyTimeout)
-      .removeListener('response', onProxyResponse)
-      .removeListener('upgrade', onProxyUpgrade)
-    proxyReq.on('error', noop)
     if (proxyReq.abort) {
       proxyReq.abort()
     } else if (proxyReq.destroy) {
@@ -242,9 +233,9 @@ function onComplete (err) {
   }
 
   if (res[kHead] === undefined) {
-    res[kProxyCallback].call(res[kSelf], err, req, res, { proxyReq, proxyRes })
+    callback.call(res[kSelf], err, req, res, { proxyReq, proxyRes })
   } else {
-    res[kProxyCallback].call(res[kSelf], err, req, res, res[kHead], { proxyReq, proxyRes, proxySocket })
+    callback.call(res[kSelf], err, req, res, res[kHead], { proxyReq, proxyRes, proxySocket })
   }
 }
 
