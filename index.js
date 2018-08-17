@@ -336,17 +336,21 @@ function getRequestHeaders (req) {
     headers[VIA] += `${req.httpVersion} ${proxyName}`
   }
 
+  function printIp (address) {
+    return /:.*:/.test(address) ? `"[${address}]"` : address
+  }
+
   const forwarded = [
-    `by="${req.socket.localAddress}"`,
-    `for="${req.socket.remoteAddress}"`,
+    `by=${printIp(req.socket.localAddress)}`,
+    `for=${printIp(req.socket.remoteAddress)}`,
     `proto=${req.socket.encrypted ? 'https' : 'http'}`,
-    `host=${req.headers[AUTHORITY] || req.headers[HOST] || ''}`
+    `host=${printIp(req.headers[AUTHORITY] || req.headers[HOST] || '')}`
   ].join('; ')
 
-  if (req.headers[FORWARDED]) {
-    req.headers[FORWARDED] += `, ${forwarded}`
+  if (headers[FORWARDED]) {
+    headers[FORWARDED] += `, ${forwarded}`
   } else {
-    req.headers[FORWARDED] = `${forwarded}`
+    headers[FORWARDED] = `${forwarded}`
   }
 
   return setupHeaders(headers)
