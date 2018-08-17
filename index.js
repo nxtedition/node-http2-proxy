@@ -70,15 +70,6 @@ function proxy (req, res, head, options, callback) {
   res[kHead] = head
   res[kOnProxyRes] = onRes
 
-  if (proxyName && req.headers[VIA]) {
-    for (const name of req.headers[VIA].split(',')) {
-      if (sanitize(name).endsWith(proxyName.toLowerCase())) {
-        process.nextTick(onComplete.bind(res), new HttpError('loop detected', null, 508))
-        return promise
-      }
-    }
-  }
-
   const headers = getRequestHeaders(req)
 
   if (head !== undefined) {
@@ -327,6 +318,22 @@ function getRequestHeaders (req) {
     if (key.charAt(0) !== ':') {
       headers[key] = value
     }
+  }
+
+  if (req.proxyName) {
+    const proxyName = sanitize(req.proxyName)
+    if (headers[VIA]) {
+      for (const name of headers[VIA].split(',')) {
+        if (sanitize(name).endsWith(proxyName)) {
+          throw new HttpError('loop detected', null, 508)
+        }
+      }
+      headers[VIA] += `,`
+    } else {
+      headers[VIA] = ''
+    }
+
+    headers[VIA] += `${req.httpVersion} ${proxyName}`
   }
 
   const forwarded = [
