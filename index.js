@@ -152,7 +152,7 @@ function proxy (req, res, head, options, callback) {
     .on('error', onComplete)
     .on('timeout', onRequestTimeout)
     .pipe(proxyReq)
-    .on('error', onComplete)
+    .on('error', onProxyError)
     .on('timeout', onProxyTimeout)
     .on('response', onProxyResponse)
     .on('upgrade', onProxyUpgrade)
@@ -233,6 +233,14 @@ function onComplete (err) {
 
 function onRequestTimeout () {
   onComplete.call(this, new HttpError('request timeout', null, 408))
+}
+
+function onProxyError (err) {
+  if (err.code === 'ECONNRESET') {
+    onComplete.call(this, new HttpError('bad gateway', null, 502))
+  } else {
+    onComplete.call(this, err)
+  }
 }
 
 function onProxyTimeout () {
