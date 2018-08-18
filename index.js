@@ -237,7 +237,7 @@ function onRequestTimeout () {
 
 function onProxyError (err) {
   if (err.code === 'ECONNRESET') {
-    onComplete.call(this, new HttpError('bad gateway', null, 502))
+    onComplete.call(this, new HttpError('request aborted', null, 502))
   } else {
     onComplete.call(this, err)
   }
@@ -248,7 +248,7 @@ function onProxyTimeout () {
 }
 
 function onProxyAborted () {
-  onComplete.call(this, new HttpError('socket hang up', 'ECONNRESET', 502))
+  onComplete.call(this, new HttpError('response aborted', 'ECONNRESET', 502))
 }
 
 function onProxyResponse (proxyRes) {
