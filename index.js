@@ -70,7 +70,7 @@ function proxy (req, res, head, options, callback) {
   res[kHead] = head
   res[kOnProxyRes] = onRes
 
-  const headers = getRequestHeaders(req)
+  const headers = getRequestHeaders(req, { proxyName })
 
   if (head !== undefined) {
     if (req.method !== 'GET') {
@@ -320,7 +320,7 @@ function createHttpHeader (line, headers) {
   return Buffer.from(head, 'ascii')
 }
 
-function getRequestHeaders (req) {
+function getRequestHeaders (req, { proxyName }) {
   const headers = {}
   for (const [ key, value ] of Object.entries(req.headers)) {
     if (key.charAt(0) !== ':') {
@@ -328,8 +328,8 @@ function getRequestHeaders (req) {
     }
   }
 
-  if (req.proxyName) {
-    const proxyName = sanitize(req.proxyName)
+  if (proxyName) {
+    proxyName = sanitize(proxyName)
     if (headers[VIA]) {
       for (const name of headers[VIA].split(',')) {
         if (sanitize(name).endsWith(proxyName)) {
