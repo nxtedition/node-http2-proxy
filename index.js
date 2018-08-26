@@ -123,9 +123,9 @@ function proxy (req, res, head, options, callback) {
 
     if (!proxyReq) {
       let agent
-      if (protocol == null || /(http|ws):?/.test(protocol)) {
+      if (protocol == null || /^(http|ws):?$/.test(protocol)) {
         agent = http
-      } else if (/(http|ws)s:?/.test(protocol)) {
+      } else if (/^(http|ws)s:?$/.test(protocol)) {
         agent = https
       } else {
         throw new HttpError(`invalid protocol`, null, 500)
