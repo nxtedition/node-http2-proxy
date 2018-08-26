@@ -266,7 +266,7 @@ function onProxyResponse (proxyRes) {
 
   if (res[kOnProxyRes]) {
     try {
-      res[kOnProxyRes].call(res[kSelf], req, res, proxyRes, onComplete)
+      res[kOnProxyRes].call(res[kSelf], req, res, proxyRes, err => onComplete.call(this, err))
     } catch (err) {
       onComplete.call(this, err)
     }
