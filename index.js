@@ -236,11 +236,8 @@ function onRequestTimeout () {
 }
 
 function onProxyError (err) {
-  if (err.code === 'ECONNRESET') {
-    onComplete.call(this, new HttpError('request aborted', null, 502))
-  } else {
-    onComplete.call(this, err)
-  }
+  err.statusCode = 502
+  onComplete.call(this, err)
 }
 
 function onProxyTimeout () {
