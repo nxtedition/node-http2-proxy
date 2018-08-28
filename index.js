@@ -320,7 +320,7 @@ function createHttpHeader (line, headers) {
 function getRequestHeaders (req, { proxyName }) {
   const headers = {}
   for (const [ key, value ] of Object.entries(req.headers)) {
-    if (key.charAt(0) !== ':') {
+    if (key.charAt(0) !== ':' && key !== 'host') {
       headers[key] = value
     }
   }
