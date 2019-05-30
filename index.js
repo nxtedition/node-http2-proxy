@@ -91,15 +91,13 @@ async function compat (ctx, options) {
         return agent.request(options)
       }
     },
-    async (proxyRes, headers) => {
+    async (proxyRes, headers) => new Promise((resolve, reject) => {
       proxyRes.headers = headers
-      return new Promise((resolve, reject) => {
-        const promise = onRes(req, res, proxyRes, (err, val) => err ? reject(err) : resolve(val))
-        if (promise && promise.then) {
-          promise.then(resolve).catch(reject)
-        }
-      })
-    }
+      const promise = onRes(req, res, proxyRes, (err, val) => err ? reject(err) : resolve(val))
+      if (promise && promise.then) {
+        promise.then(resolve).catch(reject)
+      }
+    })
   )
 }
 
