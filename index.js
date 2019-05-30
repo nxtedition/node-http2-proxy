@@ -52,7 +52,6 @@ async function compat (ctx, options) {
     hostname,
     port,
     protocol,
-    path = req.originalUrl || req.url,
     timeout,
     proxyTimeout,
     proxyName,
@@ -66,15 +65,10 @@ async function compat (ctx, options) {
 
   await proxy(
     { ...ctx, proxyName },
-    async headers => {
-      const options = {
-        method: req.method,
-        hostname,
-        port,
-        path,
-        headers,
-        timeout: proxyTimeout
-      }
+    async ureq  => {
+      ureq.hostname = hostname
+      ureq.port = port
+      ureq.timeout = proxyTimeout
 
       if (onReq) {
         return await new Promise((resolve, reject) => {
@@ -134,7 +128,11 @@ async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onR
     headers[UPGRADE] = 'websocket'
   }
 
-  const proxyReq = await onReq(headers)
+  const proxyReq = await onReq({
+    method: req.method,
+    path: req.originalUrl || req.url,
+    headers
+  })
 
   req[kRes] = res
 
