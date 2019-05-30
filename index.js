@@ -29,7 +29,7 @@ const kOnRes = Symbol('onRes')
 module.exports = proxy
 
 proxy.ws = function ws (req, socket, head, options, callback) {
-  const promise = compat(ctx, options)
+  const promise = compat({ req, socket, head }, options)
   if (!callback) {
     return promise
   }
@@ -38,7 +38,7 @@ proxy.ws = function ws (req, socket, head, options, callback) {
     .then(err => callback(err, req, socket, head))
 }
 proxy.web = function web (req, res, options, callback) {
-  const promise = compat(ctx, options)
+  const promise = compat({ req, res }, options)
   if (!callback) {
     return promise
   }
@@ -48,6 +48,8 @@ proxy.web = function web (req, res, options, callback) {
 }
 
 async function compat (ctx, options) {
+  const { req, res } = ctx
+
   const {
     hostname,
     port,
@@ -65,15 +67,15 @@ async function compat (ctx, options) {
 
   await proxy(
     { ...ctx, proxyName },
-    async ureq  => {
+    async ureq => {
       ureq.hostname = hostname
       ureq.port = port
       ureq.timeout = proxyTimeout
 
       if (onReq) {
-        return await new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
           const promise = onReq(req, options, (err, val) => err ? reject(err) : resolve(val))
-          if (promise.then) {
+          if (promise && promise.then) {
             promise.then(resolve).catch(reject)
           }
         })
@@ -92,8 +94,8 @@ async function compat (ctx, options) {
     async (proxyRes, headers) => {
       proxyRes.headers = headers
       return new Promise((resolve, reject) => {
-        const promise = onRes(req, res, proxyRes, (err, val) => err ? reject(err) : callback(val))
-        if (promise.then) {
+        const promise = onRes(req, res, proxyRes, (err, val) => err ? reject(err) : resolve(val))
+        if (promise && promise.then) {
           promise.then(resolve).catch(reject)
         }
       })
