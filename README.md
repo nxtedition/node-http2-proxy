@@ -66,6 +66,8 @@ server.listen(8000)
 
 ## API
 
+Note, http2-proxy is fully async/await compatible and all callback based usage is optional and discouraged.
+
 ### Proxy HTTP/2, HTTP/1 and WebSocket
 
 ```js

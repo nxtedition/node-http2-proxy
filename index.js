@@ -33,6 +33,7 @@ proxy.ws = function ws (req, socket, head, options, callback) {
   if (!callback) {
     return promise
   }
+  // Legacy compat...
   promise
     .then(() => callback(null, req, socket, head))
     .then(err => callback(err, req, socket, head))
@@ -42,6 +43,7 @@ proxy.web = function web (req, res, options, callback) {
   if (!callback) {
     return promise
   }
+  // Legacy compat...
   promise
     .then(() => callback(null, req, res))
     .then(err => callback(err, req, res))
@@ -61,6 +63,7 @@ async function compat (ctx, options) {
     onRes
   } = options
 
+  // Legacy compat...
   if (timeout != null) {
     req.setTimeout(timeout)
   }
@@ -73,18 +76,23 @@ async function compat (ctx, options) {
       ureq.timeout = proxyTimeout
 
       if (onReq) {
-        return new Promise((resolve, reject) => {
-          const promiseOrReq = onReq(req, options, (err, val) => err ? reject(err) : resolve(val))
-          if (promiseOrReq) {
-            if (promiseOrReq.then) {
-              promiseOrReq.then(resolve).catch(reject)
-            } else if (promiseOrReq.abort) {
-              resolve(promiseOrReq)
-            } else {
-              throw new Error('onReq must return a promise or a request object')
+        if (onReq.length <= 2) {
+          return onReq(req, options)
+        } else {
+          // Legacy compat...
+          return new Promise((resolve, reject) => {
+            const promiseOrReq = onReq(req, options, (err, val) => err ? reject(err) : resolve(val))
+            if (promiseOrReq) {
+              if (promiseOrReq.then) {
+                promiseOrReq.then(resolve).catch(reject)
+              } else if (promiseOrReq.abort) {
+                resolve(promiseOrReq)
+              } else {
+                throw new Error('onReq must return a promise or a request object')
+              }
             }
-          }
-        })
+          })
+        }
       } else {
         let agent
         if (protocol == null || /^(http|ws):?$/.test(protocol)) {
@@ -97,13 +105,20 @@ async function compat (ctx, options) {
         return agent.request(options)
       }
     },
-    async (proxyRes, headers) => new Promise((resolve, reject) => {
+    async (proxyRes, headers) => {
       proxyRes.headers = headers
-      const promise = onRes(req, res, proxyRes, (err, val) => err ? reject(err) : resolve(val))
-      if (promise && promise.then) {
-        promise.then(resolve).catch(reject)
+      if (onRes.length <= 3) {
+        return onRes(req, res, proxyRes)
+      } else {
+        // Legacy compat...
+        return new Promise((resolve, reject) => {
+          const promise = onRes(req, res, proxyRes, (err, val) => err ? reject(err) : resolve(val))
+          if (promise && promise.then) {
+            promise.then(resolve).catch(reject)
+          }
+        })
       }
-    })
+    }
   )
 }
 
