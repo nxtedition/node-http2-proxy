@@ -2,7 +2,7 @@
 
 A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 
-### Features
+## Features
 
 - Proxies HTTP 2, HTTP 1 and WebSocket.
 - Simple and high performance.
@@ -11,15 +11,15 @@ A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 - [Via header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via).
 - [Forward header handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forward).
 
-### Installation
+## Installation
 
 ```sh
 $ npm install http2-proxy
 ```
 
-### Notes
+## Notes
 
-`http2-proxy` requires at least node **v9.5.0**.
+`http2-proxy` requires at least node **v10.0.0**.
 
 Request & Response errors are emitted to the server object either as `clientError` for http/1 or `streamError` for http/2. See the NodeJS documentation for further details.
 
@@ -43,7 +43,7 @@ const defaultWSHandler = (err, req, socket, head) => {
 }
 ```
 
-### HTTP/1 API
+## HTTP/1 API
 
 You must pass `allowHTTP1: true` to the `http2.createServer` or `http2.createSecureServer` factory methods.
 
@@ -64,7 +64,9 @@ const server = http.createServer()
 server.listen(8000)
 ```
 
-#### Proxy HTTP/2, HTTP/1 and WebSocket
+## API
+
+### Proxy HTTP/2, HTTP/1 and WebSocket
 
 ```js
 server.on('request', (req, res) => {
@@ -81,7 +83,7 @@ server.on('upgrade', (req, socket, head) => {
 })
 ```
 
-#### Use [Connect](https://www.npmjs.com/package/connect) & [Helmet](https://www.npmjs.com/package/helmet)
+### Use [Connect](https://www.npmjs.com/package/connect) & [Helmet](https://www.npmjs.com/package/helmet)
 
 ```js
 const app = connect()
@@ -99,7 +101,7 @@ app.use((req, res, next) => proxy
 server.on('request', app)
 ```
 
-#### Add x-forwarded headers
+### Add x-forwarded headers
 
 ```js
 server.on('request', (req, res) => {
@@ -115,7 +117,7 @@ server.on('request', (req, res) => {
 })
 ```
 
-#### Follow Redirects
+### Follow Redirects
 
 ```js
 const http = require('follow-redirects').http
@@ -129,7 +131,7 @@ server.on('request', (req, res) => {
 })
 ```
 
-#### web (req, res, options, [callback])
+### web (req, res, options, [callback])
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
 - `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse).
@@ -138,7 +140,7 @@ server.on('request', (req, res) => {
 
 See [`request`](https://nodejs.org/api/http.html#http_event_request)
 
-#### ws (req, socket, head, options, [callback])
+### ws (req, socket, head, options, [callback])
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage).
 - `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
@@ -157,14 +159,15 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
   - `proxyTimeout`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout.
   - `proxyName`: Proxy name used for **Via** header.
   - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout.
-  - `onReq(req, options)`: Called before proxy request. If returning a truthy value it will be used as the request.
+  - `onReq(req, options, callback)`: Called before proxy request. If returning a truthy value it will be used as the request.
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
     - `options`: Options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback).
+    - `callback(err)`: Called on completion or error. Optionally a promise can be returned.
   - `onRes(req, resOrSocket, proxyRes, callback)`: Called before proxy response.
     - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
     - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
     - `proxyRes`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
-    - `callback(err)`: Called on completion or error..
+    - `callback(err)`: Called on completion or error. Optionally a promise can be returned.
 
 ### License
 

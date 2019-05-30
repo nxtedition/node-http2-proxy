@@ -1,6 +1,30 @@
+const net = require('net')
 const http = require('http')
 const https = require('https')
-const url = require('url')
+
+const CONNECTION = 'connection'
+const HOST = 'host'
+const KEEP_ALIVE = 'keep-alive'
+const PROXY_AUTHORIZATION = 'proxy-authorization'
+const PROXY_AUTHENTICATE = 'proxy-authenticate'
+const PROXY_CONNECTION = 'proxy-connection'
+const TE = 'te'
+const FORWARDED = 'forwarded'
+const TRAILER = 'trailer'
+const TRANSFER_ENCODING = 'transfer-encoding'
+const UPGRADE = 'upgrade'
+const VIA = 'via'
+const AUTHORITY = ':authority'
+const HTTP2_SETTINGS = 'http2-settings'
+
+const kReq = Symbol('req')
+const kRes = Symbol('res')
+const kProxyCallback = Symbol('callback')
+const kProxyReq = Symbol('proxyReq')
+const kProxyRes = Symbol('proxyRes')
+const kProxySocket = Symbol('proxySocket')
+const kConnected = Symbol('connected')
+const kOnRes = Symbol('onRes')
 
 const CONNECTION = 'connection'
 const HOST = 'host'
@@ -16,30 +40,28 @@ const VIA = 'via'
 const AUTHORITY = ':authority'
 const HTTP2_SETTINGS = 'http2-settings'
 
-module.exports = {
-  ws (req, socket, head, options, callback) {
-    return proxy.call(this, req, socket, head || null, options, callback)
-  },
-  web (req, res, options, callback) {
-    return proxy.call(this, req, res, undefined, options, callback)
+module.exports = proxy
+
+proxy.ws = function ws (req, socket, head, options, callback) {
+  const promise = compat(ctx, options)
+  if (!callback) {
+    return promise
   }
+  promise
+    .then(() => callback(null, req, socket, head))
+    .then(err => callback(err, req, socket, head))
+}
+proxy.web = function web (req, res, options, callback) {
+  const promise = compat(ctx, options)
+  if (!callback) {
+    return promise
+  }
+  promise
+    .then(() => callback(null, req, res))
+    .then(err => callback(err, req, res))
 }
 
-const kReq = Symbol('req')
-const kRes = Symbol('res')
-const kSelf = Symbol('self')
-const kProxyCallback = Symbol('callback')
-const kProxyReq = Symbol('proxyReq')
-const kProxyRes = Symbol('proxyRes')
-const kProxySocket = Symbol('proxySocket')
-const kOnProxyRes = Symbol('onProxyRes')
-const kHead = Symbol('head')
-
-function proxy (req, res, head, options, callback) {
-  if (typeof options === 'string') {
-    options = new url.URL(options)
-  }
-
+async function compat (ctx, options) {
   const {
     hostname,
     port,
@@ -52,35 +74,68 @@ function proxy (req, res, head, options, callback) {
     onRes
   } = options
 
-  let promise
-  if (!callback) {
-    promise = new Promise((resolve, reject) => {
-      callback = (err, ...args) => err ? reject(err) : resolve(args)
-    })
+  if (timeout != null) {
+    req.setTimeout(timeout)
   }
 
-  req[kRes] = res
+  await proxy(
+    { ...ctx, proxyName },
+    async headers => {
+      const options = {
+        method: req.method,
+        hostname,
+        port,
+        path,
+        headers,
+        timeout: proxyTimeout
+      }
 
-  res[kReq] = req
-  res[kRes] = res
-  res[kSelf] = this
-  res[kProxyCallback] = callback
-  res[kProxyReq] = null
-  res[kProxySocket] = null
-  res[kHead] = head
-  res[kOnProxyRes] = onRes
+      if (onReq) {
+        return await new Promise((resolve, reject) => {
+          const promise = onReq(req, options, (err, val) => err ? reject(err) : resolve(val))
+          if (promise.then) {
+            promise.then(resolve).catch(reject)
+          }
+        })
+      } else {
+        let agent
+        if (protocol == null || /^(http|ws):?$/.test(protocol)) {
+          agent = http
+        } else if (/^(http|ws)s:?$/.test(protocol)) {
+          agent = https
+        } else {
+          throw new HttpError(`invalid protocol`, null, 500)
+        }
+        return agent.request(options)
+      }
+    },
+    async (proxyRes, headers) => {
+      proxyRes.headers = headers
+      return new Promise((resolve, reject) => {
+        const promise = onRes(req, res, proxyRes, (err, val) => err ? reject(err) : callback(val))
+        if (promise.then) {
+          promise.then(resolve).catch(reject)
+        }
+      })
+    }
+  )
+}
 
-  const headers = getRequestHeaders(req, { proxyName })
+async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onRes) {
+  let callback
+  let promise = new Promise((resolve, reject) => {
+    callback = err => err ? reject(err) : resolve()
+  })
+
+  const headers = getRequestHeaders(req, proxyName)
 
   if (head !== undefined) {
     if (req.method !== 'GET') {
-      process.nextTick(onComplete.bind(res), new HttpError('method not allowed', null, 405))
-      return promise
+      throw new HttpError('only GET request allowed', null, 405)
     }
 
-    if (sanitize(req.headers[UPGRADE]) !== 'websocket') {
-      process.nextTick(onComplete.bind(res), new HttpError('bad request', null, 400))
-      return promise
+    if (req.headers[UPGRADE] !== 'websocket') {
+      throw new HttpError('missing upgrade header', null, 400)
     }
 
     if (head && head.length) {
@@ -93,53 +148,21 @@ function proxy (req, res, head, options, callback) {
     headers[UPGRADE] = 'websocket'
   }
 
-  if (proxyName) {
-    if (headers[VIA]) {
-      headers[VIA] += `,${req.httpVersion} ${proxyName}`
-    } else {
-      headers[VIA] = `${req.httpVersion} ${proxyName}`
-    }
-  }
+  const proxyReq = await onReq(headers)
 
-  if (timeout != null) {
-    req.setTimeout(timeout)
-  }
+  req[kRes] = res
 
-  const reqOptions = {
-    method: req.method,
-    hostname,
-    port,
-    path,
-    headers,
-    timeout: proxyTimeout
-  }
-
-  let proxyReq
-
-  try {
-    if (onReq) {
-      proxyReq = onReq.call(res[kSelf], req, reqOptions)
-    }
-
-    if (!proxyReq) {
-      let agent
-      if (protocol == null || /^(http|ws):?$/.test(protocol)) {
-        agent = http
-      } else if (/^(http|ws)s:?$/.test(protocol)) {
-        agent = https
-      } else {
-        throw new HttpError(`invalid protocol`, null, 500)
-      }
-      proxyReq = agent.request(reqOptions)
-    }
-  } catch (err) {
-    process.nextTick(onComplete.bind(res), err)
-    return promise
-  }
+  res[kReq] = req
+  res[kRes] = res
+  res[kProxySocket] = null
+  res[kProxyReq] = proxyReq
+  res[kProxyRes] = null
+  res[kProxyCallback] = callback
 
   proxyReq[kReq] = req
   proxyReq[kRes] = res
-  res[kProxyReq] = proxyReq
+  proxyReq[kConnected] = false
+  proxyReq[kOnRes] = onRes
 
   res
     .on('close', onComplete)
@@ -150,59 +173,62 @@ function proxy (req, res, head, options, callback) {
     .on('close', onComplete)
     .on('aborted', onComplete)
     .on('error', onComplete)
-    .on('timeout', onRequestTimeout)
-    .pipe(proxyReq)
-    .on('error', onProxyError)
-    .on('timeout', onProxyTimeout)
-    .on('response', onProxyResponse)
-    .on('upgrade', onProxyUpgrade)
+
+  proxyReq
+    .on('error', onProxyReqError)
+    .on('timeout', onProxyReqTimeout)
+    .on('response', onProxyReqResponse)
+    .on('upgrade', onProxyReqUpgrade)
+
+  deferToConnect.call(proxyReq, onProxyConnect)
 
   return promise
+}
+
+function deferToConnect (cb) {
+  this.once('socket', function (socket) {
+    if (!socket.connecting) {
+      cb.call(this)
+    } else {
+      socket.once('connect', cb.bind(this))
+    }
+  })
 }
 
 function onComplete (err) {
   const res = this[kRes]
   const req = res[kReq]
 
-  const callback = res[kProxyCallback]
-
-  if (!callback) {
+  if (!res[kProxyCallback]) {
     return
   }
 
   const proxySocket = res[kProxySocket]
-  const proxyRes = res[kProxyRes]
   const proxyReq = res[kProxyReq]
+  const proxyRes = res[kProxyRes]
+  const callback = res[kProxyCallback]
 
-  res[kProxySocket] = undefined
-  res[kProxyRes] = undefined
-  res[kProxyReq] = undefined
-  res[kSelf] = undefined
-  res[kHead] = undefined
-  res[kOnProxyRes] = undefined
-  res[kProxyCallback] = undefined
+  res[kProxySocket] = null
+  res[kProxyReq] = null
+  res[kProxyRes] = null
+  res[kProxyCallback] = null
 
   res
-    .removeListener('close', onComplete)
-    .removeListener('finish', onComplete)
-    .removeListener('error', onComplete)
+    .off('close', onComplete)
+    .off('finish', onComplete)
+    .off('error', onComplete)
 
   req
-    .removeListener('close', onComplete)
-    .removeListener('aborted', onComplete)
-    .removeListener('error', onComplete)
-    .removeListener('timeout', onRequestTimeout)
+    .off('close', onComplete)
+    .off('aborted', onComplete)
+    .off('error', onComplete)
 
   if (proxySocket) {
-    if (proxySocket.destroy) {
-      proxySocket.destroy()
-    }
+    proxySocket.destroy()
   }
 
   if (proxyRes) {
-    if (proxyRes.destroy) {
-      proxyRes.destroy()
-    }
+    proxyRes.destroy()
   }
 
   if (proxyReq) {
@@ -213,57 +239,38 @@ function onComplete (err) {
     }
   }
 
-  if (err) {
-    err.statusCode = err.statusCode || 500
-    err.code = err.code || res.code
-
-    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-      err.statusCode = 503
-    } else if (/HPE_INVALID/.test(err.code)) {
-      err.statusCode = 502
-    }
-  }
-
-  if (res[kHead] === undefined) {
-    callback.call(res[kSelf], err, req, res, { proxyReq, proxyRes })
-  } else {
-    callback.call(res[kSelf], err, req, res, res[kHead], { proxyReq, proxyRes, proxySocket })
-  }
+  callback(err)
 }
 
-function onRequestTimeout () {
-  onComplete.call(this, new HttpError('request timeout', null, 408))
+function onProxyConnect () {
+  this[kConnected] = true
+  this[kReq].pipe(this)
 }
 
-function onProxyError (err) {
-  err.statusCode = 502
+function onProxyReqError (err) {
+  err.statusCode = this[kConnected] ? 502 : 503
   onComplete.call(this, err)
 }
 
-function onProxyTimeout () {
-  onComplete.call(this, new HttpError('gateway timeout', null, 504))
+function onProxyReqTimeout () {
+  onComplete.call(this, new HttpError('proxy timeout', 'ETIMEDOUT', 504))
 }
 
-function onProxyAborted () {
-  onComplete.call(this, new HttpError('response aborted', 'ECONNRESET', 502))
-}
-
-function onProxyResponse (proxyRes) {
+async function onProxyReqResponse (proxyRes) {
   const res = this[kRes]
-  const req = res[kReq]
 
   res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
 
-  proxyRes
-    .on('aborted', onProxyAborted)
-    .on('error', onComplete)
-
   const headers = setupHeaders(proxyRes.headers)
 
-  if (res[kOnProxyRes]) {
+  proxyRes
+    .on('aborted', onProxyResAborted)
+    .on('error', onProxyResError)
+
+  if (this[kOnRes]) {
     try {
-      res[kOnProxyRes].call(res[kSelf], req, res, proxyRes, err => onComplete.call(this, err))
+      await this[kOnRes](proxyRes, headers)
     } catch (err) {
       onComplete.call(this, err)
     }
@@ -281,7 +288,7 @@ function onProxyResponse (proxyRes) {
   }
 }
 
-function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
+function onProxyReqUpgrade (proxyRes, proxySocket, proxyHead) {
   const res = this[kRes]
 
   res[kProxySocket] = proxySocket
@@ -296,10 +303,19 @@ function onProxyUpgrade (proxyRes, proxySocket, proxyHead) {
   res.write(createHttpHeader('HTTP/1.1 101 Switching Protocols', proxyRes.headers))
 
   proxySocket
-    .on('error', onComplete)
-    .on('close', onProxyAborted)
+    .on('error', onProxyResError)
+    .on('close', onProxyResAborted)
     .pipe(res)
     .pipe(proxySocket)
+}
+
+function onProxyResError (err) {
+  err.statusCode = 502
+  onComplete.call(this, err)
+}
+
+function onProxyResAborted () {
+  onComplete.call(this, new HttpError('proxy aborted', 'ECONNRESET', 502))
 }
 
 function createHttpHeader (line, headers) {
@@ -317,7 +333,7 @@ function createHttpHeader (line, headers) {
   return Buffer.from(head, 'ascii')
 }
 
-function getRequestHeaders (req, { proxyName }) {
+function getRequestHeaders (req, proxyName) {
   const headers = {}
   for (const [ key, value ] of Object.entries(req.headers)) {
     if (key.charAt(0) !== ':' && key !== 'host') {
@@ -325,11 +341,12 @@ function getRequestHeaders (req, { proxyName }) {
     }
   }
 
+  // TODO(fix): <host> [ ":" <port> ] vs <pseudonym>
+  // See, https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via.
   if (proxyName) {
-    proxyName = sanitize(proxyName)
     if (headers[VIA]) {
       for (const name of headers[VIA].split(',')) {
-        if (sanitize(name).endsWith(proxyName)) {
+        if (name.endsWith(proxyName)) {
           throw new HttpError('loop detected', null, 508)
         }
       }
@@ -338,16 +355,27 @@ function getRequestHeaders (req, { proxyName }) {
       headers[VIA] = ''
     }
 
-    headers[VIA] += `${req.httpVersion} ${proxyName}`
+    headers[VIA] += `${req.httpVersion} ${req.proxyName}`
   }
 
-  function printIp (address) {
-    return /:.*:/.test(address) ? `"[${address}]"` : address
+  function printIp (address, port) {
+    const isIPv6 = net.isIPv6(address)
+    let str = `${address}`
+    if (isIPv6) {
+      str = `[${str}]`
+    }
+    if (port) {
+      str = `${str}:${port}`
+    }
+    if (isIPv6) {
+      str = `"${str}"`
+    }
+    return str
   }
 
   const forwarded = [
-    `by=${printIp(req.socket.localAddress)}`,
-    `for=${printIp(req.socket.remoteAddress)}`,
+    `by=${printIp(req.socket.localAddress, req.socket.localPort)}`,
+    `for=${printIp(req.socket.remoteAddress, req.socket.remotePort)}`,
     `proto=${req.socket.encrypted ? 'https' : 'http'}`,
     `host=${printIp(req.headers[AUTHORITY] || req.headers[HOST] || '')}`
   ].join('; ')
@@ -368,7 +396,7 @@ function setupSocket (socket) {
 }
 
 function setupHeaders (headers) {
-  const connection = sanitize(headers[CONNECTION])
+  const connection = headers[CONNECTION]
 
   if (connection && connection !== CONNECTION && connection !== KEEP_ALIVE) {
     for (const name of connection.split(',')) {
@@ -378,20 +406,18 @@ function setupHeaders (headers) {
 
   // Remove hop by hop headers
   delete headers[CONNECTION]
-  delete headers[KEEP_ALIVE]
-  delete headers[TRANSFER_ENCODING]
-  delete headers[TE]
-  delete headers[UPGRADE]
-  delete headers[PROXY_AUTHORIZATION]
   delete headers[PROXY_CONNECTION]
+  delete headers[KEEP_ALIVE]
+  delete headers[PROXY_AUTHENTICATE]
+  delete headers[PROXY_AUTHORIZATION]
+  delete headers[TE]
   delete headers[TRAILER]
+  delete headers[TRANSFER_ENCODING]
+  delete headers[UPGRADE]
+
   delete headers[HTTP2_SETTINGS]
 
   return headers
-}
-
-function sanitize (name) {
-  return name ? name.trim().toLowerCase() : ''
 }
 
 class HttpError extends Error {
