@@ -74,9 +74,11 @@ async function compat (ctx, options) {
 
       if (onReq) {
         return new Promise((resolve, reject) => {
-          const promise = onReq(req, options, (err, val) => err ? reject(err) : resolve(val))
-          if (promise && promise.then) {
-            promise.then(resolve).catch(reject)
+          const promiseOrReq = onReq(req, options, (err, val) => err ? reject(err) : resolve(val))
+          if (promiseOrReq && promiseOrReq.then) {
+            promiseOrReq.then(resolve).catch(reject)
+          } else if (promiseOrReq && promiseOrReq.abort) {
+            resolve(promiseOrReq)
           }
         })
       } else {
