@@ -1,4 +1,4 @@
-# node-http2-proxy
+# http2-proxy
 
 A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 
@@ -13,7 +13,7 @@ A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
 
 ## Installation
 
-```sh
+```bash
 $ npm install http2-proxy
 ```
 
@@ -21,9 +21,11 @@ $ npm install http2-proxy
 
 `http2-proxy` requires at least node **v10.0.0**.
 
-Request & Response errors are emitted to the server object either as `clientError` for http/1 or `streamError` for http/2. See the NodeJS documentation for further details.
+Fully async/await compatible and all callback based usage is optional and discouraged.
 
-You need to use an final and/or error handler since errored responses won't be cleaned up automatically.
+During 503 it is safe to assume that the request never made it to the upstream server. This makes it safe to retry non idempotent methods.
+
+Use a final and/or error handler since errored responses won't be cleaned up automatically. This makes it possible to perform retries.
 
 ```js
 const finalhandler = require('finalhandler')
@@ -66,8 +68,6 @@ server.listen(8000)
 
 ## API
 
-Note, http2-proxy is fully async/await compatible and all callback based usage is optional and discouraged.
-
 ### Proxy HTTP/2, HTTP/1 and WebSocket
 
 ```js
@@ -103,7 +103,7 @@ app.use((req, res, next) => proxy
 server.on('request', app)
 ```
 
-### Add x-forwarded headers
+### Add x-forwarded Headers
 
 ```js
 server.on('request', (req, res) => {
@@ -133,44 +133,176 @@ server.on('request', (req, res) => {
 })
 ```
 
-### web (req, res, options, [callback])
+### Add Response Header
+
+```js
+server.on('request', (req, res) => {
+  proxy.web(req, res, {
+    hostname: 'localhost'
+    port: 9000,
+    onReq: (req, options) => http.request(options),
+    onRes: (req, res, proxyRes) => {
+      res.setHeader('x-powered-by', 'http2-proxy')
+      res.writeHead(proxyRes.statusCode, proxyRes.headers)
+      proxyRes.pipe(res)
+    }
+  }, defaultWebHandler)
+})
+```
+
+### Try Multiple Upstream Servers (Advanced)
+
+```js
+const http = require('http')
+const proxy = require('http2-proxy')
+const createError = require('http-errors')
+
+server.on('request', async (req, res) => {
+  try {
+    res.statusCode = null
+    for await (const { port, timeout, hostname } of upstream) {
+      if (req.aborted) {
+        return
+      }
+
+      let finished = false
+      let bytesWritten = 0
+      try {
+        return await proxy.web(req, res, {
+          port,
+          timeout,
+          hostname,
+          onRes: async (req, res, proxyRes) => {
+            if (proxyRes.statusCode >= 500) {
+              throw createError(proxyRes.statusCode, proxyRes.message)
+            }
+
+            if (!res.headersSent) {
+              res.statusCode = proxyRes.statusCode
+              for (const [ key, value ] of Object.entries(headers)) {
+                res.setHeader(key, value)
+              }
+            }
+
+            // NOTE: At some point this will be possible
+            // proxyRes.pipe(res)
+
+            function onClose () {
+              res.off('drain', onDrain)
+            }
+
+            function onDrain () {
+              proxyRes.resume()
+            }
+
+            proxyRes
+              .on('data', buf => {
+                // WORKAROUND: https://github.com/nodejs/node/pull/28004
+                bytesWritten += buf.length
+                if (!res.write(buf)) {
+                  proxyRes.pause()
+                }
+              })
+              .on('end', () => {
+                // WORKAROUND: https://github.com/nodejs/node/pull/27984
+                if (proxyRes.aborted) {
+                  return
+                }
+
+                res.end()
+
+                // WORKAROUND: https://github.com/nodejs/node/pull/24347
+                finished = true
+              })
+              .on('close', onClose)
+
+            res.on('drain', onDrain)
+          }
+        })
+      } catch (err) {
+        if (finished) {
+          throw err
+        }
+
+        if (err.statusCode === 503) {
+          continue
+        }
+
+        if (req.method === 'HEAD' || req.method === 'GET') {
+          if (!bytesWritten) {
+            continue
+          } else {
+            // TODO: Retry range request
+          }
+        }
+
+        throw err
+      }
+    }
+
+    throw new createError.ServiceUnavailable()
+  } catch (err) {
+    defaultWebHandler(err)
+  }
+}
+```
+
+### `[async] web (req, res, options[, callback])`
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
 - `res`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse).
 - `options`: See [Options](#options)
-- `callback(err, req, res)`: Called on completion or error. Optional.
+- `callback(err, req, res)`: Called on completion or error.
 
 See [`request`](https://nodejs.org/api/http.html#http_event_request)
 
-### ws (req, socket, head, options, [callback])
+### `[async] ws (req, socket, head, options[, callback])`
 
 - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage).
 - `socket`: [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
 - `head`: [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer).
 - `options`: See [Options](#options).
-- `callback(err, req, socket, head)`: Called on completion or error. Optional.
+- `callback(err, req, socket, head)`: Called on completion or error.
 
 See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
 
-### Options
+### `options`
 
-  - `hostname`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target hostname.
-  - `port`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target port.
-  - `protocol`: 'string' agent protocol ('http' or 'https'). Defaults to 'http'.
-  - `path`: 'string' target pathname. Defaults to `req.originalUrl || req.url`.
-  - `proxyTimeout`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout.
-  - `proxyName`: Proxy name used for **Via** header.
-  - `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout.
-  - `onReq(req, options, callback)`: Called before proxy request. If returning a truthy value it will be used as the request.
-    - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
-    - `options`: Options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback).
-    - `callback(err)`: Called on completion or error. Optionally a promise can be returned.
-  - `onRes(req, resOrSocket, proxyRes, callback)`: Called before proxy response.
-    - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
-    - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
-    - `proxyRes`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
-    - `callback(err)`: Called on completion or error. Optionally a promise can be returned.
+- `hostname`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target hostname.
+- `port`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) target port.
+- `protocol`: Agent protocol (`'http'` or `'https'`). Defaults to `'http'`.
+- `path`: Target pathname. Defaults to `req.originalUrl || req.url`.
+- `proxyTimeout`: Proxy [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback) timeout.
+- `proxyName`: Proxy name used for **Via** header.
+- `timeout`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest) timeout.
+- `[async] onReq(req, options[, callback])`: Called before proxy request. If returning a truthy value it will be used as the request.
+  - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest)
+  - `options`: Options passed to [`http.request(options)`](https://nodejs.org/api/http.html#http_http_request_options_callback).
+  - `callback(err)`: Called on completion or error.
+- `[async] onRes(req, resOrSocket, proxyRes[, callback])`: Called on proxy response. Writing of response must be done inside this method if provided.
+  - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
+  - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
+  - `proxyRes`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
+  - `callback(err)`: Called on completion or error.
 
-### License
+## Node
+
+These are some existing issues in NodeJS to keep in mind when writing proxy code.
+
+- https://github.com/nodejs/node/issues/27981
+- https://github.com/nodejs/node/issues/28001
+- https://github.com/nodejs/node/issues/27880
+- https://github.com/nodejs/node/issues/24743
+- https://github.com/nodejs/node/issues/24742
+
+And some pending PR's:
+
+- https://github.com/nodejs/node/pull/28004
+- https://github.com/nodejs/node/pull/27984
+- https://github.com/nodejs/node/pull/24347
+
+Some of these are further referenced in the examples.
+
+## License
 
   [MIT](LICENSE)
