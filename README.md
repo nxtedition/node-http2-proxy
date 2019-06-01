@@ -161,7 +161,7 @@ server.on('request', async (req, res) => {
   try {
     res.statusCode = null
     for await (const { port, timeout, hostname } of upstream) {
-      if (req.aborted) {
+      if (req.aborted || finished) {
         return
       }
 
@@ -221,7 +221,7 @@ server.on('request', async (req, res) => {
           }
         })
       } catch (err) {
-        if (finished) {
+        if (!err.statusCode) {
           throw err
         }
 
