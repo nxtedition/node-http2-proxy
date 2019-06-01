@@ -182,6 +182,7 @@ server.on('request', async (req, res) => {
               for (const [ key, value ] of Object.entries(headers)) {
                 res.setHeader(key, value)
               }
+              res.flushHeaders()
             }
 
             // NOTE: At some point this will be possible
