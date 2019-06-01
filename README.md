@@ -165,6 +165,7 @@ server.on('request', async (req, res) => {
         return
       }
 
+      let error = null
       let finished = false
       let bytesWritten = 0
       try {
@@ -177,53 +178,52 @@ server.on('request', async (req, res) => {
               throw createError(proxyRes.statusCode, proxyRes.message)
             }
 
-            if (!res.headersSent) {
-              res.statusCode = proxyRes.statusCode
-              for (const [ key, value ] of Object.entries(headers)) {
-                res.setHeader(key, value)
+            function setHeaders () {
+              if (!bytesWritten) {
+                res.statusCode = proxyRes.statusCode
+                for (const [ key, value ] of Object.entries(headers)) {
+                  res.setHeader(key, value)
+                }
               }
-              res.flushHeaders()
             }
 
             // NOTE: At some point this will be possible
             // proxyRes.pipe(res)
 
-            function onClose () {
-              res.off('drain', onDrain)
-            }
-
-            function onDrain () {
-              proxyRes.resume()
-            }
-
             proxyRes
               .on('data', buf => {
-                // WORKAROUND: https://github.com/nodejs/node/pull/28004
+                setHeaders()
                 bytesWritten += buf.length
                 if (!res.write(buf)) {
                   proxyRes.pause()
                 }
               })
               .on('end', () => {
+                setHeaders()
                 // WORKAROUND: https://github.com/nodejs/node/pull/27984
-                if (proxyRes.aborted) {
-                  return
+                if (!proxyRes.aborted) {
+                  res.end()
+                  // WORKAROUND: https://github.com/nodejs/node/pull/24347
+                  finished = true
                 }
-
-                res.end()
-
-                // WORKAROUND: https://github.com/nodejs/node/pull/24347
-                finished = true
               })
-              .on('close', onClose)
+              .on('close', () => {
+                res.off('drain', onDrain)
+              }))
 
             res.on('drain', onDrain)
+
+            function onDrain () {
+              proxyRes.resume()
+            }
           }
         })
       } catch (err) {
         if (!err.statusCode) {
           throw err
         }
+
+        error = err
 
         if (err.statusCode === 503) {
           continue
@@ -232,16 +232,16 @@ server.on('request', async (req, res) => {
         if (req.method === 'HEAD' || req.method === 'GET') {
           if (!bytesWritten) {
             continue
-          } else {
-            // TODO: Retry range request
           }
+
+          // TODO: Retry range request
         }
 
         throw err
       }
     }
 
-    throw new createError.ServiceUnavailable()
+    throw error || new createError.ServiceUnavailable()
   } catch (err) {
     defaultWebHandler(err)
   }
