@@ -36,7 +36,7 @@ proxy.ws = function ws (req, socket, head, options, callback) {
   // Legacy compat...
   promise
     .then(() => callback(null, req, socket, head))
-    .then(err => callback(err, req, socket, head))
+    .catch(err => callback(err, req, socket, head))
 }
 proxy.web = function web (req, res, options, callback) {
   const promise = compat({ req, res }, options)
@@ -46,7 +46,7 @@ proxy.web = function web (req, res, options, callback) {
   // Legacy compat...
   promise
     .then(() => callback(null, req, res))
-    .then(err => callback(err, req, res))
+    .catch(err => callback(err, req, res))
 }
 
 async function compat (ctx, options) {
