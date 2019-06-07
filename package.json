@@ -2,9 +2,7 @@
   "name": "http2-proxy",
   "version": "5.0.19",
   "scripts": {
-    "dev": "nodemon --inspect=9308 src",
-    "precommit": "standard",
-    "commitmsg": "validate-commit-msg"
+    "dev": "nodemon --inspect=9308 src"
   },
   "main": "index.js",
   "author": "Robert Nagy <ronagy@icloud.com>",
@@ -20,5 +18,11 @@
     "nodemon": "^1.17.3",
     "standard": "^12.0.1",
     "validate-commit-msg": "^2.14.0"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "validate-commit-msg",
+      "pre-commit": "standard"
+    }
   }
 }
