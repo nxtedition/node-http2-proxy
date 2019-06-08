@@ -355,7 +355,7 @@ function getRequestHeaders (req, proxyName) {
           throw new HttpError('loop detected', null, 508)
         }
       }
-      headers[VIA] += `,`
+      headers[VIA] += ','
     } else {
       headers[VIA] = ''
     }
