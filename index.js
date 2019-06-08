@@ -404,7 +404,7 @@ function setupHeaders (headers) {
   const connection = headers[CONNECTION]
 
   if (connection && connection !== CONNECTION && connection !== KEEP_ALIVE) {
-    for (const name of connection.split(',')) {
+    for (const name of connection.toLowerCase().split(',')) {
       delete headers[name.trim()]
     }
   }
