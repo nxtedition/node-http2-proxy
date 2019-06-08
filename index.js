@@ -383,7 +383,7 @@ function getRequestHeaders (req, proxyName) {
     `for=${printIp(req.socket.remoteAddress, req.socket.remotePort)}`,
     `proto=${req.socket.encrypted ? 'https' : 'http'}`,
     `host=${printIp(req.headers[AUTHORITY] || req.headers[HOST] || '')}`
-  ].join('; ')
+  ].join(';')
 
   if (headers[FORWARDED]) {
     headers[FORWARDED] += `, ${forwarded}`
