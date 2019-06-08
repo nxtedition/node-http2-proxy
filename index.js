@@ -289,7 +289,9 @@ async function onProxyReqResponse (proxyRes) {
     for (const [ key, value ] of Object.entries(headers)) {
       res.setHeader(key, value)
     }
-    proxyRes.pipe(res)
+    proxyRes
+      .on('end', onProxyResEnd)
+      .pipe(res)
   }
 }
 
@@ -321,6 +323,11 @@ function onProxyResError (err) {
 
 function onProxyResAborted () {
   onComplete.call(this, new HttpError('proxy aborted', 'ECONNRESET', 502))
+}
+
+function onProxyResEnd () {
+  const res = this[kRes]
+  res.addTrailers(res.trailers)
 }
 
 function createHttpHeader (line, headers) {

@@ -199,9 +199,10 @@ server.on('request', async (req, res) => {
                 }
               })
               .on('end', () => {
-                setHeaders()
                 // WORKAROUND: https://github.com/nodejs/node/pull/27984
                 if (!proxyRes.aborted) {
+                  setHeaders()
+                  res.addTrailers(proxyRes.trailers)
                   res.end()
                   // WORKAROUND: https://github.com/nodejs/node/pull/24347
                   finished = true
