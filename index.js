@@ -123,11 +123,6 @@ async function compat (ctx, options) {
 }
 
 async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onRes) {
-  let callback
-  let promise = new Promise((resolve, reject) => {
-    callback = err => err ? reject(err) : resolve()
-  })
-
   const headers = getRequestHeaders(req, proxyName)
 
   if (head !== undefined) {
@@ -153,6 +148,20 @@ async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onR
     method: req.method,
     path: req.originalUrl || req.url,
     headers
+  })
+
+  if (req.aborted) {
+    if (proxyReq.abort) {
+      proxyReq.abort()
+    } else if (proxyReq.destroy) {
+      proxyReq.destroy()
+    }
+    return
+  }
+
+  let callback
+  let promise = new Promise((resolve, reject) => {
+    callback = err => err ? reject(err) : resolve()
   })
 
   req[kRes] = res
