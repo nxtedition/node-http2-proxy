@@ -123,6 +123,10 @@ async function compat (ctx, options) {
 }
 
 async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onRes) {
+  if (req.aborted) {
+    return
+  }
+
   const headers = getRequestHeaders(req, proxyName)
 
   if (head !== undefined) {
