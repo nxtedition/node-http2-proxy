@@ -164,7 +164,7 @@ async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onR
   }
 
   let callback
-  let promise = new Promise((resolve, reject) => {
+  const promise = new Promise((resolve, reject) => {
     callback = err => err ? reject(err) : resolve()
   })
 
@@ -299,7 +299,7 @@ async function onProxyReqResponse (proxyRes) {
     }
   } else {
     res.statusCode = proxyRes.statusCode
-    for (const [ key, value ] of Object.entries(headers)) {
+    for (const [key, value] of Object.entries(headers)) {
       res.setHeader(key, value)
     }
     proxyRes
@@ -345,7 +345,7 @@ function onProxyResEnd () {
 
 function createHttpHeader (line, headers) {
   let head = line
-  for (const [ key, value ] of Object.entries(headers)) {
+  for (const [key, value] of Object.entries(headers)) {
     if (!Array.isArray(value)) {
       head += `\r\n${key}: ${value}`
     } else {
@@ -360,7 +360,7 @@ function createHttpHeader (line, headers) {
 
 function getRequestHeaders (req, proxyName) {
   const headers = {}
-  for (const [ key, value ] of Object.entries(req.headers)) {
+  for (const [key, value] of Object.entries(req.headers)) {
     if (key.charAt(0) !== ':' && key !== 'host') {
       headers[key] = value
     }
