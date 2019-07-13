@@ -373,8 +373,10 @@ function onProxyResAborted () {
 }
 
 function onProxyResEnd () {
-  const res = this[kRes]
-  res.addTrailers(res.trailers)
+  if (this.trailers) {
+    const res = this[kRes]
+    res.addTrailers(this.trailers)
+  }
 }
 
 function createHttpHeader (line, headers) {
