@@ -277,6 +277,8 @@ function onProxyReqTimeout () {
 async function onProxyReqResponse (proxyRes) {
   const res = this[kRes]
 
+  this[kReq].unpipe(this)
+
   res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
 
