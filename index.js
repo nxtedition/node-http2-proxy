@@ -240,6 +240,8 @@ function onComplete (err) {
     .off('close', onComplete)
     .off('aborted', onComplete)
     .off('error', onComplete)
+    .off('data', onRequestData)
+    .off('end', onRequestEnd)
 
   if (proxySocket) {
     proxySocket.destroy()
@@ -262,7 +264,39 @@ function onComplete (err) {
 
 function onProxyConnect () {
   this[kConnected] = true
-  this[kReq].pipe(this)
+
+  this[kReq]
+    .on('data', onRequestData)
+    .on('end', onRequestEnd)
+
+  this
+    .on('drain', onProxyRequestDrain)
+}
+
+function onRequestData (buf) {
+  const res = this[kRes]
+
+  if (res[kProxyRes]) {
+    return
+  }
+
+  if (!res[kProxyReq].write(buf)) {
+    this.pause()
+  }
+}
+
+function onRequestEnd () {
+  const res = this[kRes]
+
+  if (res[kProxyRes]) {
+    return
+  }
+
+  res[kProxyReq].end()
+}
+
+function onProxyRequestDrain () {
+  this[kReq].resume()
 }
 
 function onProxyReqError (err) {
@@ -276,8 +310,6 @@ function onProxyReqTimeout () {
 
 async function onProxyReqResponse (proxyRes) {
   const res = this[kRes]
-
-  this[kReq].unpipe(this)
 
   res[kProxyRes] = proxyRes
   proxyRes[kRes] = res
