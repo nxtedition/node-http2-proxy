@@ -374,8 +374,7 @@ function onProxyResAborted () {
 
 function onProxyResEnd () {
   if (this.trailers) {
-    const res = this[kRes]
-    res.addTrailers(this.trailers)
+    this[kRes].addTrailers(this.trailers)
   }
 }
 
