@@ -23,7 +23,6 @@ const kProxyCallback = Symbol('callback')
 const kProxyReq = Symbol('proxyReq')
 const kProxyRes = Symbol('proxyRes')
 const kProxySocket = Symbol('proxySocket')
-const kConnected = Symbol('connected')
 const kOnRes = Symbol('onRes')
 
 module.exports = proxy
@@ -179,7 +178,6 @@ async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onR
 
   proxyReq[kReq] = req
   proxyReq[kRes] = res
-  proxyReq[kConnected] = false
   proxyReq[kOnRes] = onRes
 
   res
@@ -191,26 +189,17 @@ async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onR
     .on('close', onComplete)
     .on('aborted', onComplete)
     .on('error', onComplete)
+    .on('data', onRequestData)
+    .on('end', onRequestEnd)
 
   proxyReq
     .on('error', onProxyReqError)
     .on('timeout', onProxyReqTimeout)
     .on('response', onProxyReqResponse)
     .on('upgrade', onProxyReqUpgrade)
-
-  deferToConnect.call(proxyReq, onProxyConnect)
+    .on('drain', onProxyRequestDrain)
 
   return promise
-}
-
-function deferToConnect (cb) {
-  this.once('socket', function (socket) {
-    if (!socket.connecting) {
-      cb.call(this)
-    } else {
-      socket.once('connect', cb.bind(this))
-    }
-  })
 }
 
 function onComplete (err) {
@@ -264,17 +253,6 @@ function onComplete (err) {
   callback(err)
 }
 
-function onProxyConnect () {
-  this[kConnected] = true
-
-  this[kReq]
-    .on('data', onRequestData)
-    .on('end', onRequestEnd)
-
-  this
-    .on('drain', onProxyRequestDrain)
-}
-
 function onRequestData (buf) {
   if (!this[kProxyReq].write(buf)) {
     this.pause()
@@ -290,7 +268,7 @@ function onProxyRequestDrain () {
 }
 
 function onProxyReqError (err) {
-  err.statusCode = this[kConnected] ? 502 : 503
+  err.statusCode = this.headersSent ? 502 : 503
   onComplete.call(this, err)
 }
 
