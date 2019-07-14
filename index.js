@@ -169,11 +169,11 @@ async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onR
   })
 
   req[kRes] = res
+  req[kProxyReq] = proxyReq
 
   res[kReq] = req
   res[kRes] = res
   res[kProxySocket] = null
-  res[kProxyReq] = proxyReq
   res[kProxyRes] = null
   res[kProxyCallback] = callback
 
@@ -221,13 +221,15 @@ function onComplete (err) {
     return
   }
 
+  const proxyReq = req[kProxyReq]
+
   const proxySocket = res[kProxySocket]
-  const proxyReq = res[kProxyReq]
   const proxyRes = res[kProxyRes]
   const callback = res[kProxyCallback]
 
+  req[kProxyReq] = null
+
   res[kProxySocket] = null
-  res[kProxyReq] = null
   res[kProxyRes] = null
   res[kProxyCallback] = null
 
@@ -274,25 +276,13 @@ function onProxyConnect () {
 }
 
 function onRequestData (buf) {
-  const res = this[kRes]
-
-  if (res[kProxyRes]) {
-    return
-  }
-
-  if (!res[kProxyReq].write(buf)) {
+  if (!this[kProxyReq].write(buf)) {
     this.pause()
   }
 }
 
 function onRequestEnd () {
-  const res = this[kRes]
-
-  if (res[kProxyRes]) {
-    return
-  }
-
-  res[kProxyReq].end()
+  this[kProxyReq].end()
 }
 
 function onProxyRequestDrain () {
