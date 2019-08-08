@@ -23,7 +23,7 @@ $ npm install http2-proxy
 
 Fully async/await compatible and all callback based usage is optional and discouraged.
 
-During 503 it is safe to assume that the request never made it to the upstream server. This makes it safe to retry non idempotent methods.
+During 503 it is safe to assume that nothing was read or written. This makes it safe to retry request (including non idempotent methods).
 
 Use a final and/or error handler since errored responses won't be cleaned up automatically. This makes it possible to perform retries.
 
