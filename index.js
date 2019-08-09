@@ -77,11 +77,11 @@ async function compat (ctx, options) {
 
       if (onReq) {
         if (onReq.length <= 2) {
-          return onReq(req, options)
+          return onReq(req, ureq)
         } else {
           // Legacy compat...
           return new Promise((resolve, reject) => {
-            const promiseOrReq = onReq(req, options, (err, val) => err ? reject(err) : resolve(val))
+            const promiseOrReq = onReq(req, ureq, (err, val) => err ? reject(err) : resolve(val))
             if (promiseOrReq) {
               if (promiseOrReq.then) {
                 promiseOrReq.then(resolve).catch(reject)
@@ -102,7 +102,7 @@ async function compat (ctx, options) {
         } else {
           throw new HttpError(`invalid protocol`, null, 500)
         }
-        return agent.request(options)
+        return agent.request(ureq)
       }
     },
     async (proxyRes, headers) => {
