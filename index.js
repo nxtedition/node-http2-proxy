@@ -49,6 +49,15 @@ proxy.web = function web (req, res, options, callback) {
     .catch(err => callback(err, req, res))
 }
 
+function bufferFromStream (stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    stream.on('error', reject)
+      .on('data', chunk => chunks.push(chunk))
+      .on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')))
+  })
+}
+
 async function compat (ctx, options) {
   const { req, res } = ctx
 
@@ -102,7 +111,14 @@ async function compat (ctx, options) {
         } else {
           throw new HttpError(`invalid protocol`, null, 500)
         }
-        return agent.request(ureq)
+
+        if (ureq.headers && ureq.headers['content-length']) {
+          const body = await bufferFromStream(req)
+          const clientRequest = agent.request(ureq)
+          clientRequest.write(body)
+          return clientRequest.end()
+        }
+        return agent.request(ureq).end()
       }
     },
     async (proxyRes, headers) => {
