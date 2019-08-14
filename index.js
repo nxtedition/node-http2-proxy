@@ -107,9 +107,9 @@ async function compat (ctx, options) {
     },
     async (proxyRes, headers) => {
       proxyRes.headers = headers
-      if (onRes.length <= 3) {
+      if (onRes && onRes.length <= 3) {
         return onRes(req, res, proxyRes)
-      } else {
+      } else if (onRes) {
         // Legacy compat...
         return new Promise((resolve, reject) => {
           const promise = onRes(req, res, proxyRes, (err, val) => err ? reject(err) : resolve(val))
@@ -117,6 +117,9 @@ async function compat (ctx, options) {
             promise.then(resolve).catch(reject)
           }
         })
+      } else {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers)
+        proxyRes.pipe(res)
       }
     }
   )
