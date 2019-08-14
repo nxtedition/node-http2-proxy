@@ -105,7 +105,7 @@ async function compat (ctx, options) {
         return agent.request(ureq)
       }
     },
-    async (proxyRes, headers) => {
+    onRes ? async (proxyRes, headers) => {
       proxyRes.headers = headers
       if (onRes.length <= 3) {
         return onRes(req, res, proxyRes)
@@ -118,7 +118,7 @@ async function compat (ctx, options) {
           }
         })
       }
-    }
+    } : null
   )
 }
 
