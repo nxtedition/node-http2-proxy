@@ -203,17 +203,17 @@ async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onR
   return promise
 }
 
-function deferToConnect () {
-  const onSocket = (socket) => {
-    if (!socket.connecting) {
-      onProxyConnect.call(this)
-    } else {
-      socket.once('connect', onProxyConnect.bind(this))
-    }
+function onSocket (socket) {
+  if (!socket.connecting) {
+    onProxyConnect.call(this)
+  } else {
+    socket.once('connect', onProxyConnect.bind(this))
   }
+}
 
+function deferToConnect () {
   if (this.socket) {
-    onSocket(this.socket)
+    onSocket.call(this, this.socket)
   } else {
     this.once('socket', onSocket)
   }
