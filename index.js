@@ -198,19 +198,25 @@ async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onR
     .on('response', onProxyReqResponse)
     .on('upgrade', onProxyReqUpgrade)
 
-  deferToConnect.call(proxyReq, onProxyConnect)
+  deferToConnect.call(proxyReq)
 
   return promise
 }
 
-function deferToConnect (cb) {
-  this.once('socket', function (socket) {
+function deferToConnect () {
+  const onSocket = (socket) => {
     if (!socket.connecting) {
-      cb.call(this)
+      onProxyConnect.call(this)
     } else {
-      socket.once('connect', cb.bind(this))
+      socket.once('connect', onProxyConnect.bind(this))
     }
-  })
+  }
+
+  if (this.socket) {
+    onSocket(this.socket)
+  } else {
+    this.once('socket', onSocket)
+  }
 }
 
 function onComplete (err) {
