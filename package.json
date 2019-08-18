@@ -4,7 +4,7 @@
   "scripts": {
     "test": "jest",
     "lint": "eslint .",
-    "format": "prettier index.js --write index.js && eslint --fix index.js"
+    "format": "prettier --write *.js && eslint --fix *.js"
   },
   "main": "index.js",
   "author": "Robert Nagy <ronagy@icloud.com>",
