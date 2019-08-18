@@ -5,7 +5,7 @@ if (cluster.isMaster) {
     cluster.fork()
   }
 } else {
-  require('http').createServer(function (req, res) {
+  require('http').createServer((req, res) => {
     res.end('Hello world!')
   }).listen(9000)
 }

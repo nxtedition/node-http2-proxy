@@ -1,5 +1,5 @@
 const proxy = require('../')
-require('http').createServer(function (req, res) {
+require('http').createServer((req, res) => {
   proxy.web(req, res, {
     hostname: 'localhost',
     port: 9000

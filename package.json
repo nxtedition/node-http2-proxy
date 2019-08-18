@@ -2,7 +2,8 @@
   "name": "http2-proxy",
   "version": "5.0.34",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint ."
   },
   "main": "index.js",
   "author": "Robert Nagy <ronagy@icloud.com>",
@@ -15,8 +16,7 @@
   ],
   "eslintConfig": {
     "extends": [
-      "standard",
-      "standard-jsx"
+      "standard"
     ],
     "overrides": [
       {
@@ -28,22 +28,10 @@
         },
         "plugins": [
           "jest"
-        ],
-        "rules": {
-          "jest/no-disabled-tests": "warn",
-          "jest/no-focused-tests": "error",
-          "jest/no-identical-title": "error",
-          "jest/prefer-to-have-length": "warn",
-          "jest/valid-expect": "error"
-        }
+        ]
       }
     ],
-    "parser": "babel-eslint",
-    "parserOptions": {
-      "ecmaFeatures": {
-        "legacyDecorators": true
-      }
-    }
+    "parser": "babel-eslint"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.2",
@@ -62,5 +50,8 @@
       "commit-msg": "validate-commit-msg",
       "pre-commit": "files=`git diff --cached --diff-filter=d --name-only | grep '\\.js$' || true` && ( [ -z \"$files\" ] || eslint --format=unix $files ) && jest"
     }
+  },
+  "dependencies": {
+    "eslint-plugin-import": "^2.18.2"
   }
 }
