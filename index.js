@@ -81,14 +81,18 @@ async function compat (ctx, options) {
         } else {
           // Legacy compat...
           return new Promise((resolve, reject) => {
-            const promiseOrReq = onReq(req, ureq, (err, val) => err ? reject(err) : resolve(val))
+            const promiseOrReq = onReq(req, ureq, (err, val) =>
+              err ? reject(err) : resolve(val)
+            )
             if (promiseOrReq) {
               if (promiseOrReq.then) {
                 promiseOrReq.then(resolve).catch(reject)
               } else if (promiseOrReq.abort) {
                 resolve(promiseOrReq)
               } else {
-                throw new Error('onReq must return a promise or a request object')
+                throw new Error(
+                  'onReq must return a promise or a request object'
+                )
               }
             }
           })
@@ -105,24 +109,32 @@ async function compat (ctx, options) {
         return agent.request(ureq)
       }
     },
-    onRes ? async (proxyRes, headers) => {
-      proxyRes.headers = headers
-      if (onRes.length <= 3) {
-        return onRes(req, res, proxyRes)
-      } else {
-        // Legacy compat...
-        return new Promise((resolve, reject) => {
-          const promise = onRes(req, res, proxyRes, (err, val) => err ? reject(err) : resolve(val))
-          if (promise && promise.then) {
-            promise.then(resolve).catch(reject)
-          }
-        })
+    onRes
+      ? async (proxyRes, headers) => {
+        proxyRes.headers = headers
+        if (onRes.length <= 3) {
+          return onRes(req, res, proxyRes)
+        } else {
+          // Legacy compat...
+          return new Promise((resolve, reject) => {
+            const promise = onRes(req, res, proxyRes, (err, val) =>
+              err ? reject(err) : resolve(val)
+            )
+            if (promise && promise.then) {
+              promise.then(resolve).catch(reject)
+            }
+          })
+        }
       }
-    } : null
+      : null
   )
 }
 
-async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onRes) {
+async function proxy (
+  { req, socket, res = socket, head, proxyName },
+  onReq,
+  onRes
+) {
   if (req.aborted) {
     return
   }
@@ -165,7 +177,7 @@ async function proxy ({ req, socket, res = socket, head, proxyName }, onReq, onR
 
   let callback
   const promise = new Promise((resolve, reject) => {
-    callback = err => err ? reject(err) : resolve()
+    callback = err => (err ? reject(err) : resolve())
   })
 
   req[kRes] = res
@@ -273,12 +285,9 @@ function onComplete (err) {
 function onProxyConnect () {
   this[kConnected] = true
 
-  this[kReq]
-    .on('data', onRequestData)
-    .on('end', onRequestEnd)
+  this[kReq].on('data', onRequestData).on('end', onRequestEnd)
 
-  this
-    .on('drain', onProxyRequestDrain)
+  this.on('drain', onProxyRequestDrain)
 }
 
 function onRequestData (buf) {
@@ -312,9 +321,7 @@ async function onProxyReqResponse (proxyRes) {
 
   const headers = setupHeaders(proxyRes.headers)
 
-  proxyRes
-    .on('aborted', onProxyResAborted)
-    .on('error', onProxyResError)
+  proxyRes.on('aborted', onProxyResAborted).on('error', onProxyResError)
 
   if (this[kOnRes]) {
     try {
@@ -324,7 +331,12 @@ async function onProxyReqResponse (proxyRes) {
     }
   } else if (!res.writeHead) {
     if (!proxyRes.upgrade) {
-      res.write(createHttpHeader(`HTTP/${proxyRes.httpVersion} ${proxyRes.statusCode} ${proxyRes.statusMessage}`, proxyRes.headers))
+      res.write(
+        createHttpHeader(
+          `HTTP/${proxyRes.httpVersion} ${proxyRes.statusCode} ${proxyRes.statusMessage}`,
+          proxyRes.headers
+        )
+      )
       proxyRes.pipe(res)
     }
   } else {
@@ -332,9 +344,7 @@ async function onProxyReqResponse (proxyRes) {
     for (const [key, value] of Object.entries(headers)) {
       res.setHeader(key, value)
     }
-    proxyRes
-      .on('end', onProxyResEnd)
-      .pipe(res)
+    proxyRes.on('end', onProxyResEnd).pipe(res)
   }
 }
 
@@ -350,7 +360,9 @@ function onProxyReqUpgrade (proxyRes, proxySocket, proxyHead) {
     proxySocket.unshift(proxyHead)
   }
 
-  res.write(createHttpHeader('HTTP/1.1 101 Switching Protocols', proxyRes.headers))
+  res.write(
+    createHttpHeader('HTTP/1.1 101 Switching Protocols', proxyRes.headers)
+  )
 
   proxySocket
     .on('error', onProxyResError)

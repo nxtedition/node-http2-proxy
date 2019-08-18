@@ -3,7 +3,8 @@
   "version": "5.0.34",
   "scripts": {
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier index.js --write index.js && eslint --fix index.js"
   },
   "main": "index.js",
   "author": "Robert Nagy <ronagy@icloud.com>",
@@ -43,12 +44,13 @@
     "eslint-plugin-standard": "^4.0.0",
     "husky": "^3.0.0",
     "jest": "^24.9.0",
+    "prettier": "^1.18.2",
     "validate-commit-msg": "^2.14.0"
   },
   "husky": {
     "hooks": {
       "commit-msg": "validate-commit-msg",
-      "pre-commit": "files=`git diff --cached --diff-filter=d --name-only | grep '\\.js$' || true` && ( [ -z \"$files\" ] || eslint --format=unix $files ) && jest"
+      "pre-commit": "files=`git diff --cached --diff-filter=d --name-only | grep '\\.js$' || true` && ( [ -z \"$files\" ] || eslint --format=unix $files ) && yarn test"
     }
   },
   "dependencies": {
