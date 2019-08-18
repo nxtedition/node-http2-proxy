@@ -2,7 +2,7 @@
   "name": "http2-proxy",
   "version": "5.0.34",
   "scripts": {
-    "dev": "nodemon --inspect=9308 src"
+    "test": "jest"
   },
   "main": "index.js",
   "author": "Robert Nagy <ronagy@icloud.com>",
@@ -13,16 +13,54 @@
     "http",
     "proxy"
   ],
+  "eslintConfig": {
+    "extends": [
+      "standard",
+      "standard-jsx"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "*.test.js"
+        ],
+        "env": {
+          "jest": true
+        },
+        "plugins": [
+          "jest"
+        ],
+        "rules": {
+          "jest/no-disabled-tests": "warn",
+          "jest/no-focused-tests": "error",
+          "jest/no-identical-title": "error",
+          "jest/prefer-to-have-length": "warn",
+          "jest/valid-expect": "error"
+        }
+      }
+    ],
+    "parser": "babel-eslint",
+    "parserOptions": {
+      "ecmaFeatures": {
+        "legacyDecorators": true
+      }
+    }
+  },
   "devDependencies": {
+    "babel-eslint": "^10.0.2",
+    "eslint": "^6.1.0",
+    "eslint-config-standard": "^13.0.1",
+    "eslint-plugin-jest": "^22.14.1",
+    "eslint-plugin-node": "^9.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.0",
     "husky": "^3.0.0",
-    "nodemon": "^1.17.3",
-    "standard": "^13.1.0",
+    "jest": "^24.9.0",
     "validate-commit-msg": "^2.14.0"
   },
   "husky": {
     "hooks": {
       "commit-msg": "validate-commit-msg",
-      "pre-commit": "standard"
+      "pre-commit": "files=`git diff --cached --diff-filter=d --name-only | grep '\\.js$' || true` && ( [ -z \"$files\" ] || eslint --format=unix $files ) && jest"
     }
   }
 }
