@@ -157,8 +157,6 @@ function onComplete (err) {
     .off('close', onComplete)
     .off('aborted', onComplete)
     .off('error', onComplete)
-    .off('data', onRequestData)
-    .off('end', onRequestEnd)
 
   if (proxySocket) {
     proxySocket.destroy()
@@ -169,6 +167,8 @@ function onComplete (err) {
   }
 
   if (proxyReq) {
+    req.unpipe(proxyReq)
+
     if (proxyReq.abort) {
       proxyReq.abort()
     } else if (proxyReq.destroy) {
@@ -181,24 +181,7 @@ function onComplete (err) {
 
 function onProxyConnect () {
   this[kConnected] = true
-
-  this[kReq].on('data', onRequestData).on('end', onRequestEnd)
-
-  this.on('drain', onProxyRequestDrain)
-}
-
-function onRequestData (buf) {
-  if (!this[kProxyReq].write(buf)) {
-    this.pause()
-  }
-}
-
-function onRequestEnd () {
-  this[kProxyReq].end()
-}
-
-function onProxyRequestDrain () {
-  this[kReq].resume()
+  this[kReq].pipe(this)
 }
 
 function onProxyReqError (err) {
