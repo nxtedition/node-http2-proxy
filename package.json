@@ -1,6 +1,6 @@
 {
   "name": "http2-proxy",
-  "version": "5.0.34",
+  "version": "5.0.35",
   "scripts": {
     "test": "jest",
     "lint": "eslint .",
