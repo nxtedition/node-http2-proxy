@@ -167,7 +167,9 @@ function onComplete (err) {
   }
 
   if (proxyReq) {
-    req.unpipe(proxyReq)
+    if (proxyReq[kConnected]) {
+      req.unpipe(proxyReq)
+    }
 
     if (proxyReq.abort) {
       proxyReq.abort()
