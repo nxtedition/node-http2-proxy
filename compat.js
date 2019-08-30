@@ -30,6 +30,7 @@ module.exports = function (proxy) {
     const {
       hostname,
       port,
+      path,
       protocol,
       timeout,
       proxyTimeout,
@@ -48,6 +49,7 @@ module.exports = function (proxy) {
       async ureq => {
         ureq.hostname = hostname
         ureq.port = port
+        ureq.path = path
         ureq.timeout = proxyTimeout
 
         if (onReq) {
