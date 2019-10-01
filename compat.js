@@ -47,10 +47,18 @@ module.exports = function (proxy) {
     await proxy(
       { ...ctx, proxyName },
       async ureq => {
-        ureq.hostname = hostname
-        ureq.port = port
-        ureq.path = path
-        ureq.timeout = proxyTimeout
+        if (hostname !== undefined) {
+          ureq.hostname = hostname
+        }
+        if (port !== undefined) {
+          ureq.port = port
+        }
+        if (path !== undefined) {
+          ureq.path = path
+        }
+        if (proxyTimeout !== undefined) {
+          ureq.timeout = proxyTimeout
+        }
 
         if (onReq) {
           if (onReq.length <= 2) {
@@ -81,7 +89,7 @@ module.exports = function (proxy) {
           } else if (/^(http|ws)s:?$/.test(protocol)) {
             agent = https
           } else {
-            throw new Error(`invalid protocol`)
+            throw new Error('invalid protocol')
           }
           return agent.request(ureq)
         }
