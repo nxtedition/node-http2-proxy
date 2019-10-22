@@ -60,12 +60,13 @@ module.exports = function (proxy) {
           ureq.timeout = proxyTimeout
         }
 
+        let req
         if (onReq) {
           if (onReq.length <= 2) {
-            return onReq(req, ureq)
+            req = await onReq(req, ureq)
           } else {
             // Legacy compat...
-            return new Promise((resolve, reject) => {
+            req = await new Promise((resolve, reject) => {
               const promiseOrReq = onReq(req, ureq, (err, val) =>
                 err ? reject(err) : resolve(val)
               )
@@ -79,10 +80,14 @@ module.exports = function (proxy) {
                     'onReq must return a promise or a request object'
                   )
                 }
+              } else {
+                resolve()
               }
             })
           }
-        } else {
+        }
+
+        if (!req) {
           let agent
           if (protocol == null || /^(http|ws):?$/.test(protocol)) {
             agent = http
@@ -91,8 +96,10 @@ module.exports = function (proxy) {
           } else {
             throw new Error('invalid protocol')
           }
-          return agent.request(ureq)
+          req = agent.request(ureq)
         }
+
+        return req
       },
       onRes
         ? async (proxyRes, headers) => {
