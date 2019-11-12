@@ -189,7 +189,8 @@ function onProxyConnect () {
 
   if (
     this.method === 'GET' ||
-    this.method === 'HEAD'
+    this.method === 'HEAD' ||
+    this.method === 'OPTIONS'
   ) {
     // Dump request.
     this[kReq].resume()
