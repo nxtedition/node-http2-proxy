@@ -160,11 +160,12 @@ function onComplete (err) {
     .off('data', onReqData)
     .off('end', onReqEnd)
 
-  if (proxyReq) {
-    if (err) {
-      err.reusedSocket = proxyReq.reusedSocket
-    }
+  if (err) {
+    err.connected = Boolean(proxyReq && proxyReq[kConnected])
+    err.reusedSocket = Boolean(proxyReq && proxyReq.reusedSocket)
+  }
 
+  if (proxyReq) {
     proxyReq.off('drain', onProxyReqDrain)
     if (proxyReq.abort) {
       proxyReq.abort()
