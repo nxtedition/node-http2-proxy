@@ -182,11 +182,23 @@ function onComplete (err) {
 
 function onProxyConnect () {
   this[kConnected] = true
-  this[kReq]
-    .on('data', onReqData)
-    .on('end', onReqEnd)
-  this
-    .on('drain', onProxyReqDrain)
+  const req = this[kReq]
+  const proxyReq = req[kProxyReq]
+
+  if (
+    proxyReq.method === 'GET' ||
+    proxyReq.method === 'HEAD'
+  ) {
+    // Dump request.
+    req.resume()
+    proxyReq.end()
+  } else {
+    req
+      .on('data', onReqData)
+      .on('end', onReqEnd)
+    this
+      .on('drain', onProxyReqDrain)
+  }
 }
 
 function onReqEnd () {
