@@ -182,18 +182,16 @@ function onComplete (err) {
 
 function onProxyConnect () {
   this[kConnected] = true
-  const req = this[kReq]
-  const proxyReq = req[kProxyReq]
 
   if (
-    proxyReq.method === 'GET' ||
-    proxyReq.method === 'HEAD'
+    this.method === 'GET' ||
+    this.method === 'HEAD'
   ) {
     // Dump request.
-    req.resume()
-    proxyReq.end()
+    this[kReq].resume()
+    this.end()
   } else {
-    req
+    this[kReq]
       .on('data', onReqData)
       .on('end', onReqEnd)
     this
