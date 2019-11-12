@@ -161,7 +161,7 @@ function onComplete (err) {
     .off('end', onReqEnd)
 
   if (err) {
-    err.connected = Boolean(proxyReq && proxyReq[kConnected])
+    err.connectedSocket = Boolean(proxyReq && proxyReq[kConnected])
     err.reusedSocket = Boolean(proxyReq && proxyReq.reusedSocket)
   }
 
