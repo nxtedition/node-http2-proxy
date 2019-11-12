@@ -161,6 +161,10 @@ function onComplete (err) {
     .off('end', onReqEnd)
 
   if (proxyReq) {
+    if (err) {
+      err.reusedSocket = proxyReq.reusedSocket
+    }
+
     proxyReq.off('drain', onProxyReqDrain)
     if (proxyReq.abort) {
       proxyReq.abort()
