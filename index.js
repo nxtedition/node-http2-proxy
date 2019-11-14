@@ -338,7 +338,7 @@ function getRequestHeaders (req, proxyName) {
       headers[VIA] = ''
     }
 
-    headers[VIA] += `${req.httpVersion} ${req.proxyName}`
+    headers[VIA] += `${req.httpVersion} ${proxyName}`
   }
 
   function printIp (address, port) {
