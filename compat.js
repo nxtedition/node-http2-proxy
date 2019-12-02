@@ -31,6 +31,7 @@ module.exports = function (proxy) {
       hostname,
       port,
       path,
+      socketPath,
       protocol,
       timeout,
       proxyTimeout,
@@ -58,6 +59,9 @@ module.exports = function (proxy) {
         }
         if (proxyTimeout !== undefined) {
           ureq.timeout = proxyTimeout
+        }
+        if (socketPath !== undefined) {
+          ureq.socketPath = socketPath
         }
 
         let ret
