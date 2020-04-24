@@ -1,5 +1,5 @@
 const http = require('http')
-const https = require('https')
+const https = require('http2-wrapper')
 
 module.exports = function (proxy) {
   proxy.ws = function ws (req, socket, head, options, callback) {
