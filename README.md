@@ -1,6 +1,18 @@
 # http2-proxy
 
-A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
+A simple http/2 & http/1.1 to http/1.1 or http/2 spec compliant proxy helper for Node.
+
+
+
+Based on http2-wrapper，The alpn protocol function based on tls can automatically determine whether the server supports http/2 or http1.
+
+
+Support the following proxy services.
+
+http/1 to http/2
+http/1 to http/1
+http/2 to http/2
+http/2 to http/1
 
 ## Features
 
