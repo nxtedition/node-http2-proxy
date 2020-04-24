@@ -29,7 +29,7 @@ Support the following proxy services.
 ## Installation
 
 ```bash
-$ npm install http2-proxy
+ npm install http2-proxy http2-wrapper
 ```
 
 ## Notes
