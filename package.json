@@ -1,4 +1,10 @@
 {
+
+
+"dependencies": {
+		"http2-wrapper": "1.0.0-beta.4.4"
+		
+	},
   "name": "http2-proxy",
   "version": "5.0.45",
   "scripts": {
