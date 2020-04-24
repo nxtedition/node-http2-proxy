@@ -1,6 +1,6 @@
 # http2-proxy
 
-A simple http/2 & http/1.1 to http/1.1 spec compliant proxy helper for Node.
+A simple http/2 & http/1.1 spec compliant proxy helper for Node.
 
 ## Features
 
@@ -146,6 +146,28 @@ server.on('request', (req, res) => {
       res.writeHead(proxyRes.statusCode, proxyRes.headers)
       proxyRes.pipe(res)
     }
+  }, defaultWebHandler)
+})
+```
+
+### Proxy HTTP2
+
+HTTP proxying can be achieved using http2 client compat
+libraries such as:
+
+https://github.com/hisco/http2-client
+https://github.com/spdy-http2/node-spdy
+https://github.com/grantila/fetch-h2
+https://github.com/szmarczak/http2-wrapper
+
+```js
+const http = require('http2-wrapper')
+
+server.on('request', (req, res) => {
+  proxy.web(req, res, {
+    hostname: 'localhost'
+    port: 9000,
+    onReq: (req, options) => http.request(options)
   }, defaultWebHandler)
 })
 ```
