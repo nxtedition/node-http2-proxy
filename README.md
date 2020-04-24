@@ -161,12 +161,11 @@ server.on('request', async (req, res) => {
   try {
     res.statusCode = null
     for await (const { port, timeout, hostname } of upstream) {
-      if (req.aborted || finished) {
+      if (req.aborted || res.readableEnded) {
         return
       }
 
       let error = null
-      let finished = false
       let bytesWritten = 0
       try {
         return await proxy.web(req, res, {
@@ -199,14 +198,9 @@ server.on('request', async (req, res) => {
                 }
               })
               .on('end', () => {
-                // WORKAROUND: https://github.com/nodejs/node/pull/27984
-                if (!proxyRes.aborted) {
-                  setHeaders()
-                  res.addTrailers(proxyRes.trailers)
-                  res.end()
-                  // WORKAROUND: https://github.com/nodejs/node/pull/24347
-                  finished = true
-                }
+                setHeaders()
+                res.addTrailers(proxyRes.trailers)
+                res.end()
               })
               .on('close', () => {
                 res.off('drain', onDrain)
@@ -285,24 +279,6 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
   - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
   - `proxyRes`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
   - `callback(err)`: Called on completion or error.
-
-## Node
-
-These are some existing issues in NodeJS to keep in mind when writing proxy code.
-
-- https://github.com/nodejs/node/issues/27981
-- https://github.com/nodejs/node/issues/28001
-- https://github.com/nodejs/node/issues/27880
-- https://github.com/nodejs/node/issues/24743
-- https://github.com/nodejs/node/issues/24742
-
-And some pending PR's:
-
-- https://github.com/nodejs/node/pull/28004
-- https://github.com/nodejs/node/pull/27984
-- https://github.com/nodejs/node/pull/24347
-
-Some of these are further referenced in the examples.
 
 ## License
 
