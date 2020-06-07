@@ -1,27 +1,27 @@
 const http = require('http')
 const https = require('https')
 
+const tlsOptions = [
+  'ca',
+  'cert',
+  'ciphers',
+  'clientCertEngine',
+  'crl',
+  'dhparam',
+  'ecdhCurve',
+  'honorCipherOrder',
+  'key',
+  'passphrase',
+  'pfx',
+  'rejectUnauthorized',
+  'secureOptions',
+  'secureProtocol',
+  'servername',
+  'sessionIdContext',
+  'highWaterMark',
+  'checkServerIdentity',
+];
 
-const tlsoptionkeys = [
-    "ca",
-    "cert",
-    "ciphers",
-    "clientCertEngine",
-    "crl",
-    "dhparam",
-    "ecdhCurve",
-    "honorCipherOrder",
-    "key",
-    "passphrase",
-    "pfx",
-    "rejectUnauthorized",
-    "secureOptions",
-    "secureProtocol",
-    "servername",
-    "sessionIdContext",
-    "highWaterMark",
-    "checkServerIdentity",
-  ];
 module.exports = function (proxy) {
   proxy.ws = function ws (req, socket, head, options, callback) {
     const promise = compat({ req, socket, head }, options)
@@ -69,13 +69,12 @@ module.exports = function (proxy) {
     await proxy(
       { ...ctx, proxyName },
       async ureq => {
-
-        for (let key of tlsoptionkeys) {
-            if (Reflect.has(options, key)) {
-              let value = Reflect.get(options, key);
-              Reflect.set(ureq, key, value);
-            }
+        for (const key of tlsOptions) {
+          if (Reflect.has(options, key)) {
+            const value = Reflect.get(options, key);
+            Reflect.set(ureq, key, value);
           }
+        }
 
         if (hostname !== undefined) {
           ureq.hostname = hostname
