@@ -1,8 +1,7 @@
 const http = require('http')
 const https = require('https')
 
-        //https://nodejs.org/dist/latest-v14.x/docs/api/https.html#https_https_request_url_options_callback
-        //The following additional options from tls.connect() are also accepted: ca, cert, ciphers, clientCertEngine, crl, dhparam, ecdhCurve, honorCipherOrder, key, passphrase, pfx, rejectUnauthorized, secureOptions, secureProtocol, servername, sessionIdContext, highWaterMark. checkServerIdentity.
+
 const tlsoptionkeys=["ca", "cert", "ciphers", "clientCertEngine", "crl", "dhparam", "ecdhCurve", "honorCipherOrder", "key", "passphrase", "pfx", "rejectUnauthorized", "secureOptions", "secureProtocol", "servername", "sessionIdContext", "highWaterMark",'checkServerIdentity']
 module.exports = function (proxy) {
   proxy.ws = function ws (req, socket, head, options, callback) {
@@ -51,14 +50,12 @@ module.exports = function (proxy) {
     await proxy(
       { ...ctx, proxyName },
       async ureq => {
+        for (let key in tlsoptionkeys){if(Reflect.has(options,key)){
+            let value=Reflect.get(options,key)
+            Reflect.set( ureq,key,value)}}
 
 
-        tlsoptionkeys.forEach(key=>{
-
-          if(Reflect.has(options,key)){
-          let value=Reflect.get(options,key)
-          Reflect.set( ureq,key,value)}
-        })
+        
 
 
         if (hostname !== undefined) {
