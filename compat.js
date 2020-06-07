@@ -70,7 +70,7 @@ module.exports = function (proxy) {
       { ...ctx, proxyName },
       async ureq => {
 
-        for (let key in tlsoptionkeys) {
+        for (let key of tlsoptionkeys) {
             if (Reflect.has(options, key)) {
               let value = Reflect.get(options, key);
               Reflect.set(ureq, key, value);
