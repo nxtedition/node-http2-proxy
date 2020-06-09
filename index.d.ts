@@ -2,7 +2,7 @@ declare module 'http2-proxy' {
     import * as http from 'http';
     import * as http2 from 'http2';
     import * as Net from 'net';
-    import tls from 'tls';
+    import * as tls from 'tls';
     export function web(
         req: http.IncomingMessage | http2.Http2ServerRequest,
         res: http.ServerResponse | http2.Http2ServerResponse,
