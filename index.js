@@ -348,7 +348,7 @@ function getRequestHeaders (req, proxyName) {
       str = `[${str}]`
     }
     if (port) {
-      str = `${str}:${port}`
+      str = `"${str}:${port}"`
     }
     if (isIPv6) {
       str = `"${str}"`
