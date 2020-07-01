@@ -1,6 +1,6 @@
 {
   "name": "http2-proxy",
-  "version": "5.0.50",
+  "version": "5.0.51",
   "types": "index.d.ts",
   "scripts": {
     "test": "jest",
