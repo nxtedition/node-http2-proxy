@@ -97,7 +97,6 @@ async function proxy (
     .on('error', onComplete)
 
   req
-    .on('close', onComplete)
     .on('aborted', onComplete)
     .on('error', onComplete)
 
