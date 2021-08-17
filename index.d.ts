@@ -95,7 +95,7 @@ declare module 'http2-proxy' {
     onRes?(
       req: Http2.Http2ServerRequest,
       res: Http2.Http2ServerResponse,
-      proxyRes: Http.ServerResponse,
+      proxyRes: Http.IncomingMessage,
       callback: (err?: Error) => any
     ): Promise<void>;
   }
@@ -104,7 +104,7 @@ declare module 'http2-proxy' {
     onRes?(
       req: Http.IncomingMessage,
       res: Http.ServerResponse,
-      proxyRes: Http.ServerResponse,
+      proxyRes: Http.IncomingMessage,
       callback: (err?: Error) => any
     ): Promise<void>;
   }
@@ -113,7 +113,7 @@ declare module 'http2-proxy' {
     onRes?(
       req: Http2.Http2ServerRequest,
       socket: Tls.TLSSocket,
-      proxyRes: Http.ServerResponse,
+      proxyRes: Http.IncomingMessage,
       callback: (err?: Error) => any
     ): Promise<void>;
   }
@@ -122,7 +122,7 @@ declare module 'http2-proxy' {
     onRes?(
       req: Http.IncomingMessage,
       socket: Net.Socket,
-      proxyRes: Http.ServerResponse,
+      proxyRes: Http.IncomingMessage,
       callback: (err?: Error) => any
     ): Promise<void>;
   }

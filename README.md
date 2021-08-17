@@ -299,7 +299,7 @@ See [`upgrade`](https://nodejs.org/api/http.html#http_event_upgrade)
 - `[async] onRes(req, resOrSocket, proxyRes[, callback])`: Called on proxy response. Writing of response must be done inside this method if provided.
   - `req`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) or [`http2.Http2ServerRequest`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverrequest).
   - `resOrSocket`: For `web` [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse) or [`http2.Http2ServerResponse`](https://nodejs.org/api/http2.html#http2_class_http2_http2serverresponse) and for `ws` [`net.Socket`](https://nodejs.org/api/net.html#net_class_net_socket).
-  - `proxyRes`: [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
+  - `proxyRes`: [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage).
   - `callback(err)`: Called on completion or error.
 
 ## License
