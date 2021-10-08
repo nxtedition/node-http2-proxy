@@ -111,9 +111,11 @@ server.on('request', (req, res) => {
     hostname: 'localhost'
     port: 9000,
     onReq: (req, { headers }) => {
-      headers['x-forwarded-for'] = req.socket.remoteAddress
-      headers['x-forwarded-proto'] = req.socket.encrypted ? 'https' : 'http'
-      headers['x-forwarded-host'] = req.headers['host']
+      const host = req.headers.host || req.authority.split(':')[0];
+      headers.host = host;
+      headers['x-forwarded-for'] = req.socket.remoteAddress;
+      headers['x-forwarded-proto'] = req.socket.encrypted ? 'https' : 'http';
+      headers['x-forwarded-host'] = host;
     }
   }, defaultWebHandler)
 })
