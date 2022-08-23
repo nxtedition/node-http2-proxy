@@ -60,7 +60,7 @@ declare module 'http2-proxy' {
   interface http2Options extends Tls.ConnectionOptions {
     timeout?: number;
     hostname: string;
-    port: number;
+    port?: number;
     protocol?: 'https';
     path?: string;
     proxyTimeout?: number;
@@ -77,7 +77,7 @@ declare module 'http2-proxy' {
   interface http1Options extends Net.ConnectOpts {
     timeout?: number;
     hostname: string;
-    port: number;
+    port?: number;
     protocol?: 'http' | 'https';
     path?: string;
     proxyTimeout?: number;
