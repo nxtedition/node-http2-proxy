@@ -129,6 +129,7 @@ module.exports = function (proxy) {
             throw new Error('invalid protocol')
           }
           ret = agent.request(ureq)
+          ret.write(JSON.stringify(req.body));
         }
 
         return ret
